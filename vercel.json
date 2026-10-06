@@ -1,7 +1,7 @@
 {
   "buildCommand": "vite build",
   "outputDirectory": "dist",
-  "functions": { "api/index.js": { "maxDuration": 30, "includeFiles": "{ph-zip.json,islamic-dates.json}" } },
+  "functions": { "api/index.js": { "maxDuration": 30, "includeFiles": "{ph-zip.json,ph-locations.json,islamic-dates.json}" } },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api" },
     { "source": "/verify-email", "destination": "/api" },

@@ -10,14 +10,30 @@
     "start": "node server.js",
     "db": "node scripts/db-init.js",
     "test:email": "node scripts/test-send.js email",
-    "test:sms": "node scripts/test-send.js sms"
+    "test:sms": "node scripts/test-send.js sms",
+    "build:locations": "node scripts/build-ph-locations.mjs"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
-    "argon2": "^0.41.1", "cookie-parser": "^1.4.7", "country-state-city": "^3.2.1", "dotenv": "^16.4.5",
-    "express": "^5.0.1", "express-rate-limit": "^7.4.1", "free-email-domains": "^1.12.17", "helmet": "^8.0.0",
-    "libphonenumber-js": "^1.13.14", "nodemailer": "^6.9.16", "pg": "^8.13.1",
-    "react": "^18.3.1", "react-dom": "^18.3.1"
+    "argon2": "^0.41.1",
+    "cookie-parser": "^1.4.7",
+    "country-state-city": "^3.2.1",
+    "dotenv": "^16.4.5",
+    "express": "^5.0.1",
+    "express-rate-limit": "^7.4.1",
+    "free-email-domains": "^1.12.17",
+    "helmet": "^8.0.0",
+    "libphonenumber-js": "^1.13.14",
+    "nodemailer": "^6.9.16",
+    "pg": "^8.13.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
-  "devDependencies": { "@vitejs/plugin-react": "^4.3.4", "vite": "^5.4.11" }
+  "devDependencies": {
+    "@aivangogh/ph-address": "^2026.2.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
 }

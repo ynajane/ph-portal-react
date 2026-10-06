@@ -60,7 +60,7 @@ export function checkPhZip({ state, city, zip }) {
 
   // 1) province
   const provOk = inNcr ? !!zNcr || recs.some((r) => sameProv(r.p, NCR_PROV)) : recs.some((r) => sameProv(r.p, state));
-  if (!provOk) return { ok: false, error: `ZIP ${z} belongs to ${zipPlace}, not ${state}.` };
+  if (!provOk) return { ok: false, error: `ZIP ${z} belongs to ${zipPlace}, not ${city}.` };   // the province is derived from the city, so name the city
 
   // 2) city: matches a postal area of this ZIP (municipalities, Metro Manila districts)...
   if (recs.some((r) => samePlace(r.a, city))) return { ok: true };

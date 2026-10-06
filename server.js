@@ -120,7 +120,7 @@ app.post('/api/register', registerLimiter, requireCsrf, async (req, res) => {
     await cl.query('begin');
     const id = (await cl.query(`insert into users(first_name,last_name,middle_initial,birthday,password_hash,email,mobile_number)
       values($1,$2,$3,to_date($4,'MM/DD/YYYY'),$5,$6,$7) returning id`, [s('first_name'), s('last_name'), s('middle_initial') || null, s('birthday'), hash, em, c.prefix + mob])).rows[0].id;
-    await cl.query('insert into addresses(user_id,house_street,country,city,state,zip_code) values($1,$2,$3,$4,$5,$6)', [id, s('house_street'), c.name, s('city'), s('state'), s('zip_code').toUpperCase()]);
+    await cl.query('insert into addresses(user_id,house_street,country,city,state,zip_code) values($1,$2,$3,$4,$5,$6)', [id, s('house_street'), c.name, s('city'), c.name === 'Philippines' ? '' : s('state'), s('zip_code').toUpperCase()]);
     await cl.query(`insert into verification_tokens(user_id,token_hash,type,expired_at) values($1,$2,'email_verify',now()+interval '24 hours')`, [id, sha(raw)]);
     await cl.query('commit');
   } catch (err) {
