@@ -51,7 +51,8 @@ const pwOk = (v) => v.length >= 12 && /[A-Z]/.test(v) && /[a-z]/.test(v) && /\d/
 function Register({ done, go }) {
   const [f, setF] = useState({ first_name: '', last_name: '', middle_initial: '', birthday: '', house_street: '', country: '', state: '', city: '', zip_code: '', email: '', mobile: '', password: '', confirm_password: '' });
   const [tx, setTx] = useState({ country: '', state: '', city: '' }), [touched, setT] = useState({}), [ax, setAx] = useState({}), [srv, setSrv] = useState({});
-  const [CUR, setCUR] = useState(null), [ST, setST] = useState([]), [sug, setSug] = useState(''), [rerr, setRerr] = useState(''), [busy, setBusy] = useState(false), [copied, setCopied] = useState('Copy'), [zw, setZw] = useState('');
+  const [CUR, setCUR] = useState(null), [cp, setCp] = useState(false), [ST, setST] = useState([]), [sug, setSug] = useState(''), [rerr, setRerr] = useState(''), [busy, setBusy] = useState(false), [copied, setCopied] = useState('Copy'), [zw, setZw] = useState('');
+  const isPH = CUR?.code === 'PH';   // Philippines: "State" (no Province) and the city must be chosen from the official list
   const val = (n, v) => {
     if (!v && n !== 'middle_initial') return 'This field is required.';
     switch (n) {
@@ -60,7 +61,7 @@ function Register({ done, go }) {
       case 'birthday': { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v); if (!m) return 'Use MM/DD/YYYY.'; const [, mo, d, y] = m.map(Number), dt = new Date(Date.UTC(y, mo - 1, d)); if (dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d || y < 1900) return 'Enter a real calendar date.'; const t = new Date(); return dt > new Date(Date.UTC(t.getUTCFullYear() - 13, t.getUTCMonth(), t.getUTCDate())) ? 'You must be at least 13 years old.' : ''; }
       case 'house_street': return /^[\p{L}0-9 .,#'’/-]{3,255}$/u.test(v) ? '' : 'Enter a valid house number and street.';
       case 'country': return ''; case 'state': return '';
-      case 'city': return /^[\p{L}0-9 .'()-]{2,100}$/u.test(v) ? '' : 'Enter a valid name (2-100 characters).';
+      case 'city': if (!/^[\p{L}0-9 .'()-]{2,100}$/u.test(v)) return 'Enter a valid name (2-100 characters).'; return isPH && !cp ? 'Choose a city from the list.' : '';
       case 'zip_code': return !CUR ? 'Select a country first.' : new RegExp(CUR.zipFormat, CUR.zipFlags).test(v) ? '' : 'Invalid postal code for ' + CUR.name + '.';
       case 'email': return emOk(v) ? '' : 'Enter a valid email (user@domain.com).';
       case 'mobile': return !CUR ? 'Select a country first.' : /^\+?[\d\s().-]{5,20}$/.test(v) ? '' : 'Enter a valid mobile number.';
@@ -89,8 +90,8 @@ function Register({ done, go }) {
   const maskBd = (v) => { const d = v.replace(/\D/g, '').slice(0, 8); return d.length > 4 ? d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4) : d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d; };
   const mark = (n, v) => { setT((t) => ({ ...t, [n]: true })); setF((p) => ({ ...p, [n]: v })); };
   const pickCountry = async (o) => {
-    if (!o) { setCUR(null); setST([]); setF((p) => ({ ...p, country: '', state: '', city: '' })); setTx((t) => ({ ...t, state: '', city: '' })); return; }
-    mark('country', o.v); setTx((t) => ({ ...t, state: '', city: '' })); setF((p) => ({ ...p, state: '', city: '' }));
+    if (!o) { setCUR(null); setST([]); setCp(false); setF((p) => ({ ...p, country: '', state: '', city: '' })); setTx((t) => ({ ...t, state: '', city: '' })); return; }
+    mark('country', o.v); setCp(false); setTx((t) => ({ ...t, state: '', city: '' })); setF((p) => ({ ...p, state: '', city: '' }));
     const c = (await api('geo/countries/' + o.v)).d; setCUR(c); const s = (await api('geo/states?country=' + o.v)).d || []; setST(s);
     if (!s.length) { setF((p) => ({ ...p, state: c.name })); setTx((t) => ({ ...t, state: 'Not applicable' })); }
   };
@@ -114,12 +115,12 @@ function Register({ done, go }) {
     let body;
     if (n === 'country') body = <Combo label="Country" ph="Type a country…" text={tx.country} setText={(v) => setTx((t) => ({ ...t, country: v }))} err={err('country') || (touched.country && !f.country ? 'Choose a country from the list.' : '')} ok={!!f.country} bad={touched.country && !f.country} onTouch={() => touch('country')}
       load={async (q) => ((await api('geo/countries?q=' + encodeURIComponent(q))).d || []).map((c) => ({ v: c.code, t: c.name + ' (' + c.dial + ')', n: c.name }))} pick={(o) => pickCountry(o)} />;
-    else if (n === 'state') body = <Combo label="State / Province" ph="Choose state / province" disabled={!!CUR && !ST.length} text={tx.state} setText={(v) => setTx((t) => ({ ...t, state: v }))} err={touched.state && !f.state ? 'Choose a state / province from the list.' : ''} ok={!!f.state} bad={touched.state && !f.state} onTouch={() => touch('state')}
+    else if (n === 'state') body = <Combo label={isPH ? 'State' : 'State / Province'} ph={isPH ? 'Choose state' : 'Choose state / province'} disabled={!!CUR && !ST.length} text={tx.state} setText={(v) => setTx((t) => ({ ...t, state: v }))} err={touched.state && !f.state ? (isPH ? 'Choose a state from the list.' : 'Choose a state / province from the list.') : ''} ok={!!f.state} bad={touched.state && !f.state} onTouch={() => touch('state')}
       load={async (q) => { const x = fold(q), rk = (s) => { s = fold(s); return s.startsWith(x) ? 0 : s.includes(x) ? 1 : 9; }; return ST.filter((s) => !x || rk(s.name) < 9).sort((a, b) => rk(a.name) - rk(b.name) || a.name.localeCompare(b.name)).map((s) => ({ v: s.name, t: s.name })); }}
-      pick={(o) => { setF((p) => ({ ...p, state: o ? o.v : '', city: '' })); setTx((t) => ({ ...t, city: '' })); if (o) touch('state'); }} />;
-    else if (n === 'city') body = <Combo label="City" ph="Type or choose a city" text={tx.city} setText={(v) => setTx((t) => ({ ...t, city: v }))} err={err('city')} ok={cls('city') === 'ok'} bad={cls('city') === 'bad'} onTouch={() => touch('city')}
+      pick={(o) => { setF((p) => ({ ...p, state: o ? o.v : '', city: '' })); setTx((t) => ({ ...t, city: '' })); setCp(false); if (o) touch('state'); }} />;
+    else if (n === 'city') body = <Combo label="City" ph={isPH ? 'Choose a city' : 'Type or choose a city'} disabled={isPH && !f.state} text={tx.city} setText={(v) => setTx((t) => ({ ...t, city: v }))} err={err('city')} ok={cls('city') === 'ok'} bad={cls('city') === 'bad'} onTouch={() => touch('city')}
       load={async (q) => CUR ? ((await api('geo/cities?country=' + CUR.code + '&state=' + encodeURIComponent(ST.length ? f.state : '') + '&q=' + encodeURIComponent(q))).d || []).map((c) => ({ v: c, t: c })) : []}
-      pick={(o, typed) => { setF((p) => ({ ...p, city: o ? o.v : (typed || '').trim() })); touch('city'); }} />;
+      pick={(o, typed) => { setCp(!!o); setF((p) => ({ ...p, city: o ? o.v : (typed || '').trim() })); touch('city'); }} />;
     else if (n === 'password' || n === 'confirm_password') body = (<div className="wide"><label className="blk" htmlFor={'f_' + n}>{n === 'password' ? 'Password' : 'Confirm password'}</label>
       <Pw id={'f_' + n} value={f[n]} onChange={(ev) => upd(n, ev.target.value)} onBlur={() => touch(n)} auto="new-password" />
       {n === 'password' && <><div className="meter"><i style={{ width: [f.password.length >= 12, /[A-Z]/.test(f.password), /[a-z]/.test(f.password), /\d/.test(f.password), /[^A-Za-z0-9]/.test(f.password)].filter(Boolean).length * 20 + '%' }} /></div>

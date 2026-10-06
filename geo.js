@@ -141,12 +141,12 @@ export async function checkAddress({ country, state, city, zip }) {
   if (!(ZIP[c.code] ?? LOOSE).test(z)) errors.zip_code = `Invalid ZIP/postal code for ${c.name}.`;
   let sl, st;
   try { sl = await states(c.code); st = sl.length ? await findState(c.code, state) : null; } catch { return { ...out, errors: { ...errors, state: DOWN } }; }
-  if (sl.length && !st) errors.state = `"${state}" is not a state/province of ${c.name}.`;
+  if (sl.length && !st) errors.state = c.code === 'PH' ? `"${state}" is not a valid state of ${c.name}. Pick one from the list.` : `"${state}" is not a state/province of ${c.name}.`;
   const warnings = [];
   if (city && !errors.state) {
     if (c.code === 'PH') {                                    // Philippines: city/municipality must be one of the province's own (per the PSGC API)
       let L; try { L = await phCities(st); } catch { return { ...out, errors: { ...errors, city: DOWN } }; }
-      if (!L.some((n) => phn(n) === phn(city))) errors.city = `\"${city}\" is not a city/municipality of ${st.name}. Pick one from the list.`;
+      if (!L.some((n) => phn(n) === phn(city))) errors.city = `\"${city}\" is not a city of ${st.name}. Pick one from the list.`;
     } else {                                                  // other countries: the city must belong to the selected state
       const inState = City.getCitiesOfState(c.code, st?.isoCode ?? '') ?? [];
       if (inState.length ? !inState.some((x) => same(x.name, city)) : false) {
