@@ -1,3 +1,10 @@
 {
-  "_help": "Optional. Put the OFFICIAL proclaimed date here to replace the provisional one. Example: \"2026\": { \"eid_fitr\": \"2026-03-20\", \"eid_adha\": \"2026-05-27\" }"
+  "_help": "OFFICIAL proclaimed dates only (Malacanang proclamation on NCMF recommendation). If a year/key is missing, that Eid is NOT shown. Keys: eid_fitr, eid_adha.",
+  "2020": { "eid_fitr": "2020-05-25", "eid_adha": "2020-07-31" },
+  "2021": { "eid_fitr": "2021-05-13", "eid_adha": "2021-07-20" },
+  "2022": { "eid_fitr": "2022-05-03", "eid_adha": "2022-07-09" },
+  "2023": { "eid_fitr": "2023-04-21", "eid_adha": "2023-06-28" },
+  "2024": { "eid_fitr": "2024-04-10", "eid_adha": "2024-06-17" },
+  "2025": { "eid_fitr": "2025-04-01", "eid_adha": "2025-06-06" },
+  "2026": { "eid_fitr": "2026-03-20", "eid_adha": "2026-05-27" }
 }
