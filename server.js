@@ -238,8 +238,8 @@ app.post('/api/otp/verify', requireCsrf, otpAuth, async (req, res) => {
 });
 
 // ---------- verified-only ----------
-app.get('/api/users', auth, verified, async (_req, res) => {
-  const { rows } = await q('select first_name,last_name,email,email_verified_at,mobile_verified from users order by created_at desc limit 100');
+app.get('/api/users', auth, verified, async (req, res) => {   // everyone EXCEPT the account that is logged in
+  const { rows } = await q('select first_name,last_name,email,email_verified_at,mobile_verified from users where id <> $1 order by created_at desc limit 100', [req.user.id]);
   res.json(rows.map((u) => ({ name: `${u.first_name} ${u.last_name}`, email: u.email.replace(/^(.).*(@.*)$/, '$1***$2'), email_ok: !!u.email_verified_at, mobile_ok: !!u.mobile_verified })));
 });
 

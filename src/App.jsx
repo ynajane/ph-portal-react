@@ -51,7 +51,7 @@ const pwOk = (v) => v.length >= 12 && /[A-Z]/.test(v) && /[a-z]/.test(v) && /\d/
 function Register({ done, go }) {
   const [f, setF] = useState({ first_name: '', last_name: '', middle_initial: '', birthday: '', house_street: '', country: '', state: '', city: '', zip_code: '', email: '', mobile: '', password: '', confirm_password: '' });
   const [tx, setTx] = useState({ country: '', state: '', city: '' }), [touched, setT] = useState({}), [ax, setAx] = useState({}), [srv, setSrv] = useState({});
-  const [CUR, setCUR] = useState(null), [ST, setST] = useState([]), [sug, setSug] = useState(''), [rerr, setRerr] = useState(''), [busy, setBusy] = useState(false), [copied, setCopied] = useState('Copy');
+  const [CUR, setCUR] = useState(null), [ST, setST] = useState([]), [sug, setSug] = useState(''), [rerr, setRerr] = useState(''), [busy, setBusy] = useState(false), [copied, setCopied] = useState('Copy'), [zw, setZw] = useState('');
   const val = (n, v) => {
     if (!v && n !== 'middle_initial') return 'This field is required.';
     switch (n) {
@@ -72,14 +72,20 @@ function Register({ done, go }) {
   const err = (n) => touched[n] ? val(n, f[n]) || ax[n] || srv[n] || '' : '';
   const cls = (n) => touched[n] ? (err(n) ? 'bad' : f[n] ? 'ok' : '') : '';
   const touch = (n) => setT((t) => ({ ...t, [n]: true }));
-  const upd = (n, v) => { setF((p) => ({ ...p, [n]: v })); touch(n); setAx((a) => ({ ...a, [n]: '' })); setSrv((s) => ({ ...s, [n]: '' })); };
+  const upd = (n, v) => { if (n === 'zip_code') setZw(''); setF((p) => ({ ...p, [n]: v })); touch(n); setAx((a) => ({ ...a, [n]: '' })); setSrv((s) => ({ ...s, [n]: '' })); };
   const blurCheck = async (n) => {
     touch(n); const v = f[n].trim(); if (!v || val(n, v)) return; let m = '';
     if (n === 'email') { const r = await api('check/email', { email: v }); m = r.ok && r.d.ok ? '' : (r.d?.error || 'Could not check this email.'); }
     else if (CUR && n === 'mobile') { const r = await api('check/mobile', { country: CUR.code, mobile: v }); m = r.d?.ok ? '' : (r.d?.error || 'Could not check this number.'); }
-    else if (CUR && n === 'zip_code') { const r = await api('geo/validate', { country: CUR.code, state: f.state, city: f.city, zip: v }); m = r.d?.errors?.zip_code || ''; }
+    else if (CUR && n === 'zip_code') { const r = await api('geo/validate', { country: CUR.code, state: f.state, city: f.city, zip: v }); m = r.d?.errors?.zip_code || ''; setZw(r.d?.zipWarning || ''); }
     setAx((a) => ({ ...a, [n]: m }));
   };
+  useEffect(() => {   // ZIP must match the city: re-check when the country, state or city changes after a ZIP was typed
+    const z = f.zip_code.trim(); if (!CUR || !z || !f.state || !f.city.trim() || val('zip_code', z)) return;
+    let on = true;
+    const t = setTimeout(async () => { const r = await api('geo/validate', { country: CUR.code, state: f.state, city: f.city, zip: z }); if (!on) return; setAx((a) => ({ ...a, zip_code: r.d?.errors?.zip_code || '' })); setZw(r.d?.zipWarning || ''); }, 600);
+    return () => { on = false; clearTimeout(t); };
+  }, [f.city, f.state, CUR?.code]); // eslint-disable-line
   const maskBd = (v) => { const d = v.replace(/\D/g, '').slice(0, 8); return d.length > 4 ? d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4) : d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d; };
   const mark = (n, v) => { setT((t) => ({ ...t, [n]: true })); setF((p) => ({ ...p, [n]: v })); };
   const pickCountry = async (o) => {
@@ -121,7 +127,7 @@ function Register({ done, go }) {
       <div className="err">{err(n)}</div></div>);
     else if (n === 'mobile') body = <div className="wide"><label>{l}<span className="row"><span className="pre">{CUR ? CUR.dial : '+'}</span><input inputMode="tel" placeholder="9171234567" value={f.mobile} className={cls('mobile')} onChange={(ev) => upd('mobile', ev.target.value)} onBlur={() => blurCheck('mobile')} /></span></label><div className="err">{err('mobile')}</div></div>;
     else body = <div className={['email', 'house_street'].includes(n) ? 'wide' : ''}><label>{l}<input type={n === 'email' ? 'email' : 'text'} autoComplete="off" value={f[n]} className={cls(n)} placeholder={n === 'birthday' ? 'MM/DD/YYYY' : ''} maxLength={n === 'birthday' ? 10 : undefined} inputMode={n === 'birthday' ? 'numeric' : undefined}
-      onChange={(ev) => upd(n, n === 'birthday' ? maskBd(ev.target.value) : ev.target.value)} onBlur={() => blurCheck(n)} /></label><div className="err">{err(n)}</div></div>;
+      onChange={(ev) => upd(n, n === 'birthday' ? maskBd(ev.target.value) : ev.target.value)} onBlur={() => blurCheck(n)} /></label><div className="err">{err(n)}</div>{n === 'zip_code' && zw && !err(n) && <small className="hint warn">{zw}</small>}</div>;
     return <div key={n} style={{ display: 'contents' }}>{sec[n] && <div className="sec">{sec[n]}</div>}{body}</div>;
   };
   return (<form onSubmit={submit} noValidate><div className="grid">{FIELDS.map(field)}</div>
@@ -143,6 +149,7 @@ function Otp({ phone, onOk, onLogin }) {
 }
 
 /* ---------- dashboard ---------- */
+const Em = ({ v }) => { const i = String(v).indexOf('@'); return i < 0 ? v : <>{v.slice(0, i)}<wbr />{v.slice(i)}</>; };
 const initials = (a, b) => (((a || '')[0] || '') + ((b || '')[0] || '')).toUpperCase();
 const row = (k, v, sub) => (<div className="sr" key={k}><div><b>{k}</b>{sub && <small>{sub}</small>}</div><div className="v">{v}</div></div>);
 const TYPE_CLS = { 'Regular Holiday': 'b0', 'Special Non-Working Day': 'b1', 'Islamic Holiday': 'b2' };
@@ -170,7 +177,7 @@ function Holidays() {
 }
 function Profile({ u }) {
   const nm = [u.first_name, u.middle_initial, u.last_name].filter(Boolean).join(' ');
-  return (<><div className="ph"><div className="av big">{initials(u.first_name, u.last_name)}</div><div><h3>{nm}</h3><small>{u.email}</small></div></div>
+  return (<><div className="ph"><div className="av big">{initials(u.first_name, u.last_name)}</div><div><h3>{nm}</h3><small><Em v={u.email} /></small></div></div>
     <div className="sg">{row('Birthday', u.birthday || '')}{row('Mobile', u.mobile_number)}{row('Address', [u.house_street, u.city, u.state, u.zip_code, u.country].filter(Boolean).join(', '))}</div></>);
 }
 const Settings = ({ out }) => (<><h3>Sign-in and security</h3><div className="sg">{row('Password', <span className="bd b2">Protected</span>, 'We never store your actual password.')}{row('Session', '8 hours', 'After that, you will need to log in again.')}{row('Failed log-ins', '3 attempts', 'Your account locks after 3 wrong passwords. We email you an unlock link that works after 2 minutes.')}</div><button className="danger" onClick={out}>Log out</button></>);
@@ -178,15 +185,17 @@ const Settings = ({ out }) => (<><h3>Sign-in and security</h3><div className="sg
 function Dash({ u }) {
   const [menu, setMenu] = useState(false), [dd, setDd] = useState(false), [m, setM] = useState(null);
   const out = async () => { await api('logout', {}); location.reload(); };
-  useEffect(() => { const c = (e) => { if (!e.target.closest('.dd')) setDd(false); }, k = (e) => e.key === 'Escape' && setM(null); document.addEventListener('click', c); document.addEventListener('keydown', k); return () => { document.removeEventListener('click', c); document.removeEventListener('keydown', k); }; }, []);
+  useEffect(() => { const c = (e) => { if (!e.target.closest('.dd')) setDd(false); }, k = (e) => e.key === 'Escape' && (setM(null), setDd(false)); document.addEventListener('click', c); document.addEventListener('keydown', k); return () => { document.removeEventListener('click', c); document.removeEventListener('keydown', k); }; }, []);
   const A = ({ on, children }) => <a tabIndex={0} onClick={on} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), on())}>{children}</a>;
-  const full = u.first_name + ' ' + u.last_name, ini = initials(u.first_name, u.last_name), small = m === 'p' || m === 's';
+  const full = u.first_name + ' ' + u.last_name, ini = initials(u.first_name, u.last_name), small = m === 'p' || m === 's', pick = (f) => () => { setMenu(false); setDd(false); f(); };
+  const togDd = () => { setMenu(false); setDd(!dd); };
   return (<>
-    <nav><b className="lg"><Logo s={30} />Activity #2</b><button id="burger" aria-label="Menu" onClick={() => setMenu(!menu)}>☰</button>
-      <div id="links" className={menu ? 'open' : ''}><A on={() => scrollTo({ top: 0, behavior: 'smooth' })}>Dashboard</A><A on={() => setM('p')}>Profile</A><A on={() => setM('s')}>Settings</A><A on={() => setM('h')}>Philippine Holidays</A>
-        <div className="dd"><a className="pfb" onClick={() => setDd(!dd)}><span className="av">{ini}</span><span className="pt"><b>{full}</b><small>{u.email}</small></span><span className="cr">▾</span></a>
-          {dd && <div id="ddm"><div className="av big">{ini}</div><b className="dn">{full}</b><p>{u.email}</p><div className="bt"><button className="ghost" onClick={() => { setDd(false); setM('p'); }}>Profile</button><button id="out" onClick={out}>Log out</button></div></div>}</div></div></nav>
-    <section className="hero"><h1>Mabuhay, <span>{u.first_name}</span></h1><p>Your account is secure. Browse accounts and check the official Philippine holiday calendar.</p><div className="ctas"><button className="alt" onClick={() => setM('a')}>View More</button></div></section>
+    <nav><b className="lg"><Logo s={30} />Activity #2</b>
+      <div id="links" className={menu ? 'open' : ''}><A on={pick(() => scrollTo({ top: 0, behavior: 'smooth' }))}>Dashboard</A><A on={pick(() => setM('p'))}>Profile</A><A on={pick(() => setM('s'))}>Settings</A><A on={pick(() => setM('h'))}>Philippine Holidays</A></div>
+      <div className="dd"><a className="pfb" role="button" tabIndex={0} aria-label="Account menu" aria-expanded={dd} onClick={togDd} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), togDd())}><span className="av">{ini}</span><span className="pt"><b>{full}</b><small>{u.email}</small></span><span className="cr">▾</span></a>
+        {dd && <div id="ddm"><div className="av big">{ini}</div><b className="dn">{full}</b><p><Em v={u.email} /></p><div className="bt"><button className="ghost" onClick={pick(() => setM('p'))}>Profile</button><button id="out" onClick={out}>Log out</button></div></div>}</div>
+      <button id="burger" aria-label="Menu" aria-expanded={menu} onClick={() => { setDd(false); setMenu(!menu); }}>{menu ? '✕' : '☰'}</button></nav>
+    <section className="hero"><h1>Mabuhay, <span>{u.first_name}</span></h1><p>Your account is secure. Browse accounts and check the official Philippine holiday calendar.</p><div className="ctas"><button className="alt" onClick={() => { setMenu(false); setDd(false); setM('a'); }}>View More</button></div></section>
     {m && <div className="ov" onClick={(e) => e.target === e.currentTarget && setM(null)}><div className={'modal' + (small ? ' sm' : '')} role="dialog" aria-modal="true">
       <div className="mh">{!small && <div className="tabs"><button className={m === 'a' ? '' : 'ghost'} onClick={() => setM('a')}>Accounts</button><button className={m === 'h' ? '' : 'ghost'} onClick={() => setM('h')}>Calendars / Holidays</button></div>}<b id="mt">{m === 'p' ? 'Profile' : m === 's' ? 'Settings' : ''}</b><button className="ghost" id="cl" onClick={() => setM(null)}>Close</button></div>
       <div className="mb">{m === 'a' && <Accounts />}{m === 'h' && <Holidays />}{m === 'p' && <Profile u={u} />}{m === 's' && <Settings out={out} />}</div></div></div>}

@@ -243,3 +243,71 @@ p.err:empty{display:none}
 /* 11. Landscape & short screens: auth card scrolls instead of being clipped */
 @media(max-height:560px){#auth{align-items:flex-start}#auth .card{margin:.5rem auto}}
 /* ================= END RESPONSIVE FIXES v2 ================= */
+.hint.warn{color:#8a5a00;margin-top:-.2rem}
+
+/* ================= PROFILE DROPDOWN + CARDS v3 ================= */
+/* emails: break before the @ (see <Em/>), only mid-word as a last resort */
+#ddm p,.ph small,.ac small{word-break:normal;overflow-wrap:anywhere}
+/* navbar name: one line with ellipsis so a long name can never push the navbar onto a second row */
+.pt b{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(min-width:901px) and (max-width:1100px){.pt b{max-width:130px}}
+/* dropdown: stay inside short screens */
+#ddm{max-height:calc(100dvh - 5rem);overflow-y:auto}
+
+/* phones + tablets (burger menu): compact dropdown, avatar beside the name, buttons underneath */
+@media(max-width:900px){
+  #links{border-top:1px solid #ffffff1f;margin-top:.4rem;padding-top:.5rem}
+  #ddm{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:.9rem;align-items:center;text-align:left;padding:.9rem;max-height:none;overflow:visible}
+  #ddm .av.big{grid-row:1/3;width:52px;height:52px;margin:0;font-size:1rem}
+  #ddm .dn{align-self:end;font-size:1rem;line-height:1.25;overflow-wrap:anywhere}
+  #ddm p{align-self:start;margin:.15rem 0 0;font-size:.8rem}
+  #ddm .bt{grid-column:1/-1;margin-top:.9rem}
+  #ddm .bt button{min-height:44px}
+}
+
+/* accounts list on phones: compact rows (avatar left, name + email right) instead of tall stacked cards */
+@media(max-width:600px){
+  .ag{grid-template-columns:minmax(0,1fr);gap:.5rem}
+  .ac{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:.8rem;align-items:center;justify-items:start;text-align:left;padding:.7rem .85rem}
+  .ac .av.big{grid-row:1/3;width:44px;height:44px;margin:0;font-size:.95rem}
+  .ac b{align-self:end;max-width:100%}.ac small{align-self:start;max-width:100%}
+}
+/* profile header + rows on very small screens */
+@media(max-width:380px){.ph{gap:.7rem}.ph .av.big{width:52px;height:52px}.ph h3{font-size:1.05rem}}
+/* ================= END v3 ================= */
+
+/* ================= v4: PHONE NAVBAR + FLOATING MODAL ================= */
+/* Desktop order: logo | links | profile.  Burger is hidden on desktop. */
+nav b.lg{order:0}#links{order:1}.dd{order:2}#burger{order:3}
+
+/* phones + small tablets (burger layout): [logo ........ avatar ☰] */
+@media(max-width:900px){
+  nav{flex-wrap:wrap;align-items:center;gap:.4rem .6rem;max-height:none;overflow:visible}
+  nav b.lg{order:0;margin-right:auto}
+  .dd{order:1;width:auto;position:static}
+  #burger{order:2;display:flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;color:#fff;border:1px solid #ffffff26;background:#ffffff0f}
+  #links{order:3;width:100%;max-height:calc(100dvh - 4.6rem);overflow-y:auto;border-top:1px solid #ffffff1f;margin-top:.2rem;padding:.4rem 0 .2rem}
+
+  /* profile button: compact avatar + caret only (name/email live in the dropdown) */
+  .pfb{width:auto;padding:.25rem .5rem .25rem .3rem;gap:.25rem;border-radius:99px}
+  .pfb .pt{display:none}
+  .pfb .av{width:36px;height:36px;margin:0;font-size:.8rem}
+  .pfb .cr{font-size:.75rem}
+
+  /* dropdown floats under the navbar, fully inside the screen */
+  #ddm{position:absolute;top:calc(100% + 8px);left:.6rem;right:.6rem;width:auto;max-width:340px;margin:0 0 0 auto;
+       display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:.9rem;align-items:center;text-align:left;
+       padding:1rem;max-height:calc(100dvh - 5.5rem);overflow-y:auto;animation:pop .16s ease-out}
+  #ddm::before{display:block;right:22px}
+}
+
+/* phones to medium phones: modal FLOATS with a gap above and below, rounded all round */
+@media(max-width:700px){
+  .ov{align-items:center;justify-content:center;
+      padding:max(.9rem,env(safe-area-inset-top,0px)) .7rem max(.9rem,env(safe-area-inset-bottom,0px))}
+  .modal,.modal.sm{width:100%;max-width:520px;max-height:calc(100dvh - 2.2rem - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+      border-radius:22px;box-shadow:0 24px 70px #000c,0 0 0 1px #ffffff1a}
+  .mb{padding:.9rem 1rem 1rem}
+}
+@media(max-width:700px) and (max-height:520px){.ov{padding:.5rem .7rem}.modal,.modal.sm{max-height:calc(100dvh - 1rem)}}
+/* ================= END v4 ================= */

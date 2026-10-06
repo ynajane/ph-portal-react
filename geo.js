@@ -5,6 +5,7 @@ import dns from 'node:dns/promises';
 import { Country, State, City } from 'country-state-city';
 import { parsePhoneNumberFromString, getCountryCallingCode } from 'libphonenumber-js/max';
 import { PUBLIC } from './domains.js';
+import { checkPhZip } from './zipmatch.js';
 
 // Postal-code formats for every country that has a postal system. The ~66 that have none fall back to a loose 3-10 char check.
 const ZIP = Object.fromEntries(Object.entries({
@@ -106,6 +107,33 @@ export async function checkEmail(email, { mx = process.env.EMAIL_MX_CHECK === 'o
   return { ok: true, email: em, domain };
 }
 
+// ---- ZIP <-> city outside the Philippines: free Zippopotam.us lookup (no offline dataset exists for these) ----
+// Blocking only when the ZIP is clearly in a different state (US/CA/AU, where state codes are reliable) or is not a US ZIP.
+// Everywhere else a mismatch is just a warning, and if the service is unreachable we fall back to the format check.
+const ZIPPO = new Set('AD AR AS AT AU BD BE BG BR CA CH CZ DE DK DO ES FI FO FR GB GF GG GL GP GT GU HR HU IE IN IS IT JP LI LK LT LU LV MC MD MH MK MP MQ MT MX MY NL NO NZ PK PL PM PR PT RE RO RU SE SG SI SJ SK SM TH TR UA US UY VA VI WF YT ZA'.split(' '));
+const STRICT_STATE = new Set(['US', 'CA', 'AU']);
+const zmemo = new Map();
+const zippoKey = (code, z) => code === 'GB' ? z.toUpperCase().split(/\s+/)[0] : code === 'CA' ? z.toUpperCase().replace(/\s+/g, '').slice(0, 3) : code === 'NL' ? z.slice(0, 4) : z;
+const zippo = (code, z) => {
+  const key = `/${code.toLowerCase()}/${encodeURIComponent(zippoKey(code, z))}`;
+  const hit = zmemo.get(key); if (hit && Date.now() - hit.t < 864e5) return hit.p;
+  if (zmemo.size > 500) zmemo.clear();
+  const p = fetch('https://api.zippopotam.us' + key, { signal: AbortSignal.timeout(4000), headers: { Accept: 'application/json' } })
+    .then((r) => r.status === 404 ? { places: [] } : r.ok ? r.json() : Promise.reject(new Error(`Zippopotam ${r.status}`)))
+    .then((j) => j.places ?? []);
+  zmemo.set(key, { t: Date.now(), p }); p.catch(() => zmemo.delete(key)); return p;
+};
+async function checkZipPlace(c, st, city, z) {   // -> { error? } | { warning? } | {}
+  if (!ZIPPO.has(c.code)) return {};
+  let pl; try { pl = await zippo(c.code, z); } catch { return {}; }
+  if (!pl.length) return c.code === 'US' ? { error: `${z} is not a valid US ZIP code.` } : {};
+  const stOk = pl.some((p) => String(p['state abbreviation'] ?? '').toUpperCase() === String(st.isoCode ?? '').toUpperCase() || norm(p.state) === norm(st.name));
+  if (!stOk && STRICT_STATE.has(c.code)) return { error: `ZIP ${z} is in ${[...new Set(pl.map((p) => p.state))].join(' / ')}, not ${st.name}.` };
+  if (!stOk || !pl.some((p) => same(p['place name'], city)))
+    return { warning: `ZIP ${z} is listed under ${[...new Set(pl.map((p) => p['place name']))].slice(0, 3).join(' / ')}. Double-check that it matches ${city}.` };
+  return {};
+}
+
 export async function checkAddress({ country, state, city, zip }) {
   const c = countryInfo(country), errors = {}; const out = { ok: false, errors };
   if (!c) return { ...out, errors: { country: 'Select a country.' } };
@@ -129,8 +157,14 @@ export async function checkAddress({ country, state, city, zip }) {
       }
     }
   }
+  // The ZIP must belong to the chosen city (PH: offline from ph-zip.json; elsewhere: live lookup, see checkZipPlace)
+  let zipWarning;
+  if (!errors.zip_code && !errors.state && !errors.city && st && city) {
+    if (c.code === 'PH') { const m = checkPhZip({ state: st.name, city, zip: z }); if (!m.ok) errors.zip_code = m.error; }
+    else { const m = await checkZipPlace(c, st, city, z); if (m.error) errors.zip_code = m.error; else if (m.warning) { zipWarning = m.warning; warnings.push(m.warning); } }
+  }
   out.warnings = warnings;
-  return { ...out, ok: !Object.keys(errors).length, errors, state: st?.name ?? state, stateCode: st?.isoCode };
+  return { ...out, ok: !Object.keys(errors).length, errors, zipWarning, state: st?.name ?? state, stateCode: st?.isoCode };
 }
 
 // ---- routes ----
