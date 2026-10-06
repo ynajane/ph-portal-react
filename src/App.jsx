@@ -52,7 +52,7 @@ function Register({ done, go }) {
   const [f, setF] = useState({ first_name: '', last_name: '', middle_initial: '', birthday: '', house_street: '', country: '', state: '', city: '', zip_code: '', email: '', mobile: '', password: '', confirm_password: '' });
   const [tx, setTx] = useState({ country: '', state: '', city: '' }), [touched, setT] = useState({}), [ax, setAx] = useState({}), [srv, setSrv] = useState({});
   const [CUR, setCUR] = useState(null), [cp, setCp] = useState(false), [ST, setST] = useState([]), [sug, setSug] = useState(''), [rerr, setRerr] = useState(''), [busy, setBusy] = useState(false), [copied, setCopied] = useState('Copy'), [zw, setZw] = useState('');
-  const isPH = CUR?.code === 'PH';   // Philippines: "State" (no Province) and the city must be chosen from the official list
+  const isPH = CUR?.code === 'PH';   // Philippines: the city must be chosen from the list of the selected state/province
   const val = (n, v) => {
     if (!v && n !== 'middle_initial') return 'This field is required.';
     switch (n) {
@@ -115,10 +115,10 @@ function Register({ done, go }) {
     let body;
     if (n === 'country') body = <Combo label="Country" ph="Type a country…" text={tx.country} setText={(v) => setTx((t) => ({ ...t, country: v }))} err={err('country') || (touched.country && !f.country ? 'Choose a country from the list.' : '')} ok={!!f.country} bad={touched.country && !f.country} onTouch={() => touch('country')}
       load={async (q) => ((await api('geo/countries?q=' + encodeURIComponent(q))).d || []).map((c) => ({ v: c.code, t: c.name + ' (' + c.dial + ')', n: c.name }))} pick={(o) => pickCountry(o)} />;
-    else if (n === 'state') body = <Combo label={isPH ? 'State' : 'State / Province'} ph={isPH ? 'Choose state' : 'Choose state / province'} disabled={!!CUR && !ST.length} text={tx.state} setText={(v) => setTx((t) => ({ ...t, state: v }))} err={touched.state && !f.state ? (isPH ? 'Choose a state from the list.' : 'Choose a state / province from the list.') : ''} ok={!!f.state} bad={touched.state && !f.state} onTouch={() => touch('state')}
+    else if (n === 'state') body = <Combo label="State / Province" ph="Choose state / province" disabled={!!CUR && !ST.length} text={tx.state} setText={(v) => setTx((t) => ({ ...t, state: v }))} err={touched.state && !f.state ? 'Choose a state / province from the list.' : ''} ok={!!f.state} bad={touched.state && !f.state} onTouch={() => touch('state')}
       load={async (q) => { const x = fold(q), rk = (s) => { s = fold(s); return s.startsWith(x) ? 0 : s.includes(x) ? 1 : 9; }; return ST.filter((s) => !x || rk(s.name) < 9).sort((a, b) => rk(a.name) - rk(b.name) || a.name.localeCompare(b.name)).map((s) => ({ v: s.name, t: s.name })); }}
       pick={(o) => { setF((p) => ({ ...p, state: o ? o.v : '', city: '' })); setTx((t) => ({ ...t, city: '' })); setCp(false); if (o) touch('state'); }} />;
-    else if (n === 'city') body = <Combo label="City" ph={isPH ? 'Choose a city' : 'Type or choose a city'} disabled={isPH && !f.state} text={tx.city} setText={(v) => setTx((t) => ({ ...t, city: v }))} err={err('city')} ok={cls('city') === 'ok'} bad={cls('city') === 'bad'} onTouch={() => touch('city')}
+    else if (n === 'city') body = <Combo label="City" ph={isPH ? (f.state ? 'Choose a city / municipality' : 'Choose a state / province first') : 'Type or choose a city'} disabled={isPH && !f.state} text={tx.city} setText={(v) => setTx((t) => ({ ...t, city: v }))} err={err('city')} ok={cls('city') === 'ok'} bad={cls('city') === 'bad'} onTouch={() => touch('city')}
       load={async (q) => CUR ? ((await api('geo/cities?country=' + CUR.code + '&state=' + encodeURIComponent(ST.length ? f.state : '') + '&q=' + encodeURIComponent(q))).d || []).map((c) => ({ v: c, t: c })) : []}
       pick={(o, typed) => { setCp(!!o); setF((p) => ({ ...p, city: o ? o.v : (typed || '').trim() })); touch('city'); }} />;
     else if (n === 'password' || n === 'confirm_password') body = (<div className="wide"><label className="blk" htmlFor={'f_' + n}>{n === 'password' ? 'Password' : 'Confirm password'}</label>
