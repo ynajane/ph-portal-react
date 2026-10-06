@@ -16,7 +16,7 @@ export const verifyPassword = (hash, pw) => argon2.verify(hash, pw);
 // iii. Rate limiting: max 5 registration requests per IP per hour (server.js sets trust proxy for the real IP)
 export const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Too many registration attempts. Try again in an hour.' },
+  message: { error: 'Registration limit reached: maximum 5 attempts per IP address per hour. Try again in an hour.', limit: true },
 });
 
 // iv. CSRF: signed double-submit token (cookie + header must match, and signature must verify)

@@ -23,16 +23,41 @@ const OFFICIAL = {
   ],
 };
 // names a provider may return that are genuine PH national holidays (anything else is dropped)
-const REAL = /new year'?s (day|eve)|last day of the year|maundy|holy thursday|good friday|black saturday|kagitingan|day of valor|labou?r day|independence day|ninoy|national heroes|all saints|all souls|immaculate|bonifacio|christmas|rizal|chinese new year|lunar new year/i;
+const REAL = /new year'?s (day|eve)|last day of the year|maundy|holy thursday|good friday|black saturday|kagitingan|day of valor|labou?r day|independence day|ninoy|national heroes|all saints|all souls|immaculate|bonifacio|christmas|rizal|chinese new year|lunar new year|special non-working|additional special|bridge/i;
+
+// One-off nationwide special non-working days that providers may omit or name differently (the entry here replaces anything on the same date).
+const EXTRA = {
+  2023: [['10-30', 'Barangay and Sangguniang Kabataan Elections (BSKE)', S]],   // Proc. 360 s.2023
+};
 
 const EID = { eid_fitr: { name: "Eid'l Fitr (Feast of Ramadan)", local: 'Eidul Fitr' }, eid_adha: { name: "Eid'l Adha (Feast of Sacrifice)", local: 'Eidul Adha' } };
 let proclaimed = {};
 try { proclaimed = JSON.parse(fs.readFileSync(new URL('./islamic-dates.json', import.meta.url), 'utf8')); } catch { /* file missing = no Eid shown */ }
 
+// LOCAL / REGIONAL Islamic holidays (PD 1083, Code of Muslim Personal Laws, Art. 169): observed in Muslim-majority areas such as BARMM, NOT nationwide.
+// Set INCLUDE_LOCAL = false  -> "National Regular Islamic Holidays" version (Eid'l Fitr + Eid'l Adha only).
+// Set INCLUDE_LOCAL = true   -> "National + Local & Regional Islamic Holidays" version.
+export const INCLUDE_LOCAL = true;
+// Local dates come ONLY from islamic-dates.json (the dates confirmed from Google). Nothing is computed or guessed: no date there = not shown.
+// A date written with a trailing "~" (e.g. "2025-06-27~") is shown with a Provisional badge.
+const LOCAL = [
+  { key: 'amun_jadid', name: 'Amun Jadid (Islamic New Year)', local: 'Amun Jadid' },
+  { key: 'maulid', name: 'Maulid an-Nabi (Birthday of the Prophet Muhammad)', local: 'Maulid an-Nabi' },
+  { key: 'isra_miraj', name: "Isra Wal Mi'raj", local: "Isra Wal Mi'raj" },
+];
+export function localIslamic(year) {
+  return LOCAL.flatMap((k) => [].concat(proclaimed?.[year]?.[k.key] ?? []).map((v) => {
+    const prov = String(v).endsWith('~');
+    return { date: String(v).replace('~', ''), name: k.name, local: k.local, type: I, scope: 'local', ...(prov && { provisional: true }) };
+  }));
+}
+
 export function withIslamic(year, list) {
   const base = OFFICIAL[year]
     ? OFFICIAL[year].map(([md, name, type]) => ({ date: `${year}-${md}`, name, local: '', type }))
-    : list.filter((h) => h.type !== I && REAL.test(`${h.name} ${h.local}`));
-  const eid = Object.entries(EID).flatMap(([k, v]) => (proclaimed?.[year]?.[k] ? [{ date: proclaimed[year][k], name: v.name, local: v.local, type: I }] : []));
-  return [...base, ...eid].sort((a, b) => a.date.localeCompare(b.date));
+    : list.filter((h) => h.type !== I && REAL.test(`${h.name} ${h.local}`) && (!h.types || h.types.some((t) => /national|public/i.test(t))));   // Calendarific: only "National holiday" entries (drops observances / local days)
+  const extra = (EXTRA[year] ?? []).map(([md, name, type]) => ({ date: `${year}-${md}`, name, local: '', type }));
+  const base2 = [...base.filter((h) => !extra.some((x) => x.date === h.date)), ...extra];
+  const eid = Object.entries(EID).flatMap(([k, v]) => (proclaimed?.[year]?.[k] ? [{ date: proclaimed[year][k], name: v.name, local: v.local, type: I, scope: 'national' }] : []));
+  return [...base2, ...eid, ...(INCLUDE_LOCAL ? localIslamic(year) : [])].sort((a, b) => a.date.localeCompare(b.date));
 }

@@ -13,7 +13,7 @@ import { CO, validate } from './validate.js';
 import { sendMail, sendSms, mode } from './services.js';
 import { geo, check, checkAddress, checkEmail } from './geo.js';
 import { classify } from './holidays.js';
-import { withIslamic } from './islamic.js';
+import { withIslamic, INCLUDE_LOCAL } from './islamic.js';
 
 const E = process.env, PROD = E.NODE_ENV === 'production', APP = E.APP_NAME ?? 'Activity #2';
 const SITE = (E.SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
@@ -110,7 +110,9 @@ app.get('/api/countries', (_req, res) => res.json(Object.fromEntries(Object.entr
 
 // Registration: rate limit (5/IP/hour) -> CSRF -> validation -> Argon2id -> unverified account + 24h email token
 app.post('/api/register', registerLimiter, requireCsrf, async (req, res) => {
-  const b = req.body ?? {}, { e, em, mob, c } = validate(b), s = (k) => String(b[k] ?? '').trim();
+  const b = req.body ?? {}, { e, em, mob, c } = validate(b);
+  const tc = (x) => x.toLowerCase().replace(/(^|[\s\-/.(])(\p{L})/gu, (m, a, z) => a + z.toUpperCase()).replace(/(^|[\s-])(\p{L}['’])(\p{L})/gu, (m, a, z, y) => a + z + y.toUpperCase());   // Title Case, enforced server-side too
+  const s = (k) => { const v = String(b[k] ?? '').trim(); return ['first_name', 'last_name', 'middle_initial', 'house_street', 'city'].includes(k) ? tc(v) : v; };
   if (!e.email && (await q('select 1 from users where email=$1', [em])).rowCount) e.email = 'This email is already registered.';
   if (!e.email) { const ce = await checkEmail(em); if (!ce.ok) e.email = ce.error; }
   if (!e.state && !e.city && !e.zip_code && c) { const a = await checkAddress({ country: s('country'), state: s('state'), city: s('city'), zip: s('zip_code') }); Object.assign(e, a.errors); }
@@ -204,7 +206,7 @@ app.post('/api/logout', requireCsrf, async (req, res) => { if (req.cookies?.sid)
 app.get('/api/me', auth, async (req, res) => {
   const u = req.user, a = (await q('select * from addresses where user_id=$1 limit 1', [u.id])).rows[0] ?? {};
   res.json({ first_name: u.first_name, last_name: u.last_name, middle_initial: u.middle_initial, email: u.email, birthday: u.birthday.toISOString?.().slice(0, 10) ?? u.birthday,
-    mobile_number: u.mobile_number, mobile_verified: u.mobile_verified, email_verified: !!u.email_verified_at, house_street: a.house_street, country: a.country, city: a.city, state: a.state, zip_code: a.zip_code });
+    mobile_number: u.mobile_number, mobile_verified: u.mobile_verified, email_verified: !!u.email_verified_at, joined: u.created_at, holiday_scope: INCLUDE_LOCAL ? 'national+local' : 'national', house_street: a.house_street, country: a.country, city: a.city, state: a.state, zip_code: a.zip_code });
 });
 
 // Mobile OTP: 6 digits, 5 min, 3 attempts then 15-minute lockout, resend only after 60 s
@@ -238,9 +240,10 @@ app.post('/api/otp/verify', requireCsrf, otpAuth, async (req, res) => {
 });
 
 // ---------- verified-only ----------
+const maskPhone = (p) => { const s = String(p ?? '').replace(/\s+/g, ''); return s.length < 7 ? '•••••' : `${s.slice(0, 3)} ••• ••• ••${s.slice(-2)}`; };   // the full number never leaves the server for other users
 app.get('/api/users', auth, verified, async (req, res) => {   // everyone EXCEPT the account that is logged in
-  const { rows } = await q('select first_name,last_name,email,email_verified_at,mobile_verified from users where id <> $1 order by created_at desc limit 100', [req.user.id]);
-  res.json(rows.map((u) => ({ name: `${u.first_name} ${u.last_name}`, email: u.email.replace(/^(.).*(@.*)$/, '$1***$2'), email_ok: !!u.email_verified_at, mobile_ok: !!u.mobile_verified })));
+  const { rows } = await q('select first_name,last_name,email,mobile_number,created_at,email_verified_at,mobile_verified from users where id <> $1 order by created_at desc limit 100', [req.user.id]);
+  res.json(rows.map((u) => ({ name: `${u.first_name} ${u.last_name}`, email: u.email.replace(/^(.).*(@.*)$/, '$1***$2'), mobile: maskPhone(u.mobile_number), joined: u.created_at, email_ok: !!u.email_verified_at, mobile_ok: !!u.mobile_verified })));
 });
 
 const cache = new Map();
@@ -252,14 +255,14 @@ app.get('/api/holidays/:year', auth, verified, async (req, res) => {   // async 
       if (E.CALENDARIFIC_API_KEY) {   // Calendarific: GET /api/v2/holidays?api_key=...&country=PH&year=YYYY  (no &type filter: Islamic days are not tagged "national")
         const x = await fetch(`https://calendarific.com/api/v2/holidays?api_key=${encodeURIComponent(E.CALENDARIFIC_API_KEY)}&country=PH&year=${y}`, { signal: AbortSignal.timeout(8000) });
         const j = x.ok ? await x.json() : null, seen = new Set();
-        raw = (j?.response?.holidays ?? []).map((h) => ({ date: String(h.date?.iso ?? '').slice(0, 10), name: h.name, localName: '', muslim: (h.type ?? []).some((t) => /muslim/i.test(t)) }))
+        raw = (j?.response?.holidays ?? []).map((h) => ({ date: String(h.date?.iso ?? '').slice(0, 10), name: h.name, localName: '', types: h.type ?? [], muslim: (h.type ?? []).some((t) => /muslim/i.test(t)) }))
           .filter((h) => h.date.length === 10 && !seen.has(h.date + h.name) && seen.add(h.date + h.name));
       } else {
         const x = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${y}/PH`, { signal: AbortSignal.timeout(8000) });
         raw = x.ok ? await x.json() : null;
       }
       if (!Array.isArray(raw) || !raw.length) throw new Error('empty');
-      cache.set(y, withIslamic(y, raw.map((h) => ({ date: h.date, name: h.name, local: h.localName, type: h.muslim ? 'Islamic Holiday' : classify(h.name, h.localName, h.date) }))));   // adds Eid'l Fitr/Adha etc. when the provider omits them
+      cache.set(y, withIslamic(y, raw.map((h) => ({ date: h.date, name: h.name, local: h.localName, types: h.types, type: h.muslim ? 'Islamic Holiday' : classify(h.name, h.localName, h.date) }))));   // adds Eid'l Fitr/Adha etc. when the provider omits them
     } catch { return res.status(502).json({ error: 'Holiday service unavailable. Try again shortly.' }); }   // failures are never cached
   }
   res.json(cache.get(y));

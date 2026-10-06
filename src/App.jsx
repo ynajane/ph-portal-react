@@ -45,10 +45,12 @@ function Combo({ label, text, setText, load, pick, disabled, ph, err, ok, bad, o
 }
 
 /* ---------- register ---------- */
-const FIELDS = [['first_name', 'First name'], ['last_name', 'Last name'], ['middle_initial', 'Middle initial (optional)'], ['birthday', 'Birthday (MM/DD/YYYY)'], ['house_street', 'House & street'], ['country'], ['state'], ['city'], ['zip_code', 'ZIP / postal code'], ['email', 'Email'], ['mobile', 'Mobile number'], ['password'], ['confirm_password']];
+const FIELDS = [['first_name', 'First name'], ['last_name', 'Last name'], ['middle_initial', 'Middle initial (optional)'], ['birthday', 'Birthday (MM/DD/YYYY)'], ['house_street', 'House & street'], ['country'], ['state'], ['city'], ['zip_code', 'ZIP'], ['email', 'Email'], ['mobile', 'Mobile number'], ['password'], ['confirm_password']];
+const tc = (s) => String(s ?? '').toLowerCase().replace(/(^|[\s\-/.(])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/(^|[\s-])(\p{L}['’])(\p{L})/gu, (m, a, b, c) => a + b + c.toUpperCase());   // Title Case (O'Brien, Mary-Jane, 5th Ave)
+const TCF = ['first_name', 'last_name', 'middle_initial', 'house_street', 'city'];   // every text field except email
 const pn = (v) => /^(?=.*\p{L})[\p{L}\p{M}'’ -]{2,50}$/u.test(v) ? '' : '2-50 letters, spaces, hyphens or apostrophes only.';
 const pwOk = (v) => v.length >= 12 && /[A-Z]/.test(v) && /[a-z]/.test(v) && /\d/.test(v) && /[^A-Za-z0-9]/.test(v);
-function Register({ done, go }) {
+function Register({ done, go, limited }) {
   const [f, setF] = useState({ first_name: '', last_name: '', middle_initial: '', birthday: '', house_street: '', country: '', state: '', city: '', zip_code: '', email: '', mobile: '', password: '', confirm_password: '' });
   const [tx, setTx] = useState({ country: '', state: '', city: '' }), [touched, setT] = useState({}), [ax, setAx] = useState({}), [srv, setSrv] = useState({});
   const [CUR, setCUR] = useState(null), [cp, setCp] = useState(false), [ST, setST] = useState([]), [sug, setSug] = useState(''), [rerr, setRerr] = useState(''), [busy, setBusy] = useState(false), [copied, setCopied] = useState('Copy'), [zw, setZw] = useState('');
@@ -62,7 +64,7 @@ function Register({ done, go }) {
       case 'house_street': return /^[\p{L}0-9 .,#'’/-]{3,255}$/u.test(v) ? '' : 'Enter a valid house number and street.';
       case 'country': return ''; case 'state': return '';
       case 'city': if (!/^[\p{L}0-9 .'()-]{2,100}$/u.test(v)) return 'Enter a valid name (2-100 characters).'; return isPH && !cp ? 'Choose a city from the list.' : '';
-      case 'zip_code': return !CUR ? 'Select a country first.' : new RegExp(CUR.zipFormat, CUR.zipFlags).test(v) ? '' : 'Invalid postal code for ' + CUR.name + '.';
+      case 'zip_code': return !CUR ? 'Select a country first.' : new RegExp(CUR.zipFormat, CUR.zipFlags).test(v) ? '' : 'Invalid ZIP for ' + CUR.name + '.';
       case 'email': return emOk(v) ? '' : 'Enter a valid email (user@domain.com).';
       case 'mobile': return !CUR ? 'Select a country first.' : /^\+?[\d\s().-]{5,20}$/.test(v) ? '' : 'Enter a valid mobile number.';
       case 'password': return pwOk(v) ? '' : '12+ characters with upper, lower, number and special character.';
@@ -75,7 +77,7 @@ function Register({ done, go }) {
   const touch = (n) => setT((t) => ({ ...t, [n]: true }));
   const upd = (n, v) => { if (n === 'zip_code') setZw(''); setF((p) => ({ ...p, [n]: v })); touch(n); setAx((a) => ({ ...a, [n]: '' })); setSrv((s) => ({ ...s, [n]: '' })); };
   const blurCheck = async (n) => {
-    touch(n); const v = f[n].trim(); if (!v || val(n, v)) return; let m = '';
+    touch(n); const v = (TCF.includes(n) ? tc(f[n]) : f[n]).trim(); if (TCF.includes(n) && v !== f[n]) setF((p) => ({ ...p, [n]: v })); if (!v || val(n, v)) return; let m = '';
     if (n === 'email') { const r = await api('check/email', { email: v }); m = r.ok && r.d.ok ? '' : (r.d?.error || 'Could not check this email.'); }
     else if (CUR && n === 'mobile') { const r = await api('check/mobile', { country: CUR.code, mobile: v }); m = r.d?.ok ? '' : (r.d?.error || 'Could not check this number.'); }
     else if (CUR && n === 'zip_code') { const r = await api('geo/validate', { country: CUR.code, state: f.state, city: f.city, zip: v }); m = r.d?.errors?.zip_code || ''; setZw(r.d?.zipWarning || ''); }
@@ -106,7 +108,8 @@ function Register({ done, go }) {
   const submit = async (ev) => {
     ev.preventDefault(); const all = {}; FIELDS.forEach(([n]) => (all[n] = true)); setT(all);
     if (FIELDS.some(([n]) => val(n, f[n]) || ax[n])) { setRerr('Please fix the highlighted fields.'); return; }
-    setRerr(''); setBusy(true); const r = await api('register', f);
+    setRerr(''); setBusy(true); const g = { ...f }; TCF.forEach((k) => (g[k] = tc(g[k]))); setF(g); const r = await api('register', g);
+    if (r.d.limit) { setBusy(false); return limited(); }   // 5 attempts per IP per hour reached: close the form and go to Log in with the rule
     if (r.d.errors) { setSrv(r.d.errors); setRerr('Please fix the highlighted fields.'); } else if (!r.ok) setRerr(r.d.error); else done();
     setBusy(false);
   };
@@ -126,8 +129,8 @@ function Register({ done, go }) {
       {n === 'password' && <><div className="meter"><i style={{ width: [f.password.length >= 12, /[A-Z]/.test(f.password), /[a-z]/.test(f.password), /\d/.test(f.password), /[^A-Za-z0-9]/.test(f.password)].filter(Boolean).length * 20 + '%' }} /></div>
         <ul className="rules">{[['12+ characters', f.password.length >= 12], ['Uppercase', /[A-Z]/.test(f.password)], ['Lowercase', /[a-z]/.test(f.password)], ['Number', /\d/.test(f.password)], ['Special', /[^A-Za-z0-9]/.test(f.password)]].map(([t, m]) => <li key={t} className={m ? 'met' : ''}>{t}</li>)}</ul></>}
       <div className="err">{err(n)}</div></div>);
-    else if (n === 'mobile') body = <div className="wide"><label>{l}<span className="row"><span className="pre">{CUR ? CUR.dial : '+'}</span><input inputMode="tel" placeholder="9171234567" value={f.mobile} className={cls('mobile')} onChange={(ev) => upd('mobile', ev.target.value)} onBlur={() => blurCheck('mobile')} /></span></label><div className="err">{err('mobile')}</div></div>;
-    else body = <div className={['email', 'house_street'].includes(n) ? 'wide' : ''}><label>{l}<input type={n === 'email' ? 'email' : 'text'} autoComplete="off" value={f[n]} className={cls(n)} placeholder={n === 'birthday' ? 'MM/DD/YYYY' : ''} maxLength={n === 'birthday' ? 10 : undefined} inputMode={n === 'birthday' ? 'numeric' : undefined}
+    else if (n === 'mobile') body = <div><label>{l}<span className="row"><span className="pre">{CUR ? CUR.dial : '+'}</span><input inputMode="tel" placeholder="9171234567" value={f.mobile} className={cls('mobile')} onChange={(ev) => upd('mobile', ev.target.value)} onBlur={() => blurCheck('mobile')} /></span></label><div className="err">{err('mobile')}</div></div>;
+    else body = <div className={n === 'house_street' ? 'wide' : ''}><label>{l}<input type={n === 'email' ? 'email' : 'text'} autoComplete="off" value={f[n]} className={cls(n) + (TCF.includes(n) ? ' tc' : '')} placeholder={n === 'birthday' ? 'MM/DD/YYYY' : ''} maxLength={n === 'birthday' ? 10 : undefined} inputMode={n === 'birthday' ? 'numeric' : undefined}
       onChange={(ev) => upd(n, n === 'birthday' ? maskBd(ev.target.value) : ev.target.value)} onBlur={() => blurCheck(n)} /></label><div className="err">{err(n)}</div>{n === 'zip_code' && zw && !err(n) && <small className="hint warn">{zw}</small>}</div>;
     return <div key={n} style={{ display: 'contents' }}>{sec[n] && <div className="sec">{sec[n]}</div>}{body}</div>;
   };
@@ -152,36 +155,64 @@ function Otp({ phone, onOk, onLogin }) {
 /* ---------- dashboard ---------- */
 const Em = ({ v }) => { const i = String(v).indexOf('@'); return i < 0 ? v : <>{v.slice(0, i)}<wbr />{v.slice(i)}</>; };
 const initials = (a, b) => (((a || '')[0] || '') + ((b || '')[0] || '')).toUpperCase();
+const PAL = [['#e11d48', '#7f1034'], ['#2563eb', '#142a6b'], ['#0d9488', '#064e46'], ['#d97706', '#78350f'], ['#7c3aed', '#3b1480'], ['#db2777', '#7a0d3a']];
+const tone = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PAL[h % PAL.length]; };
+const Av = ({ first, last, size = 'md', ok }) => { const [a, b] = tone((first || '') + (last || '')); return (<span className={'avx avx-' + size} style={{ '--a': a, '--b': b }} aria-hidden="true"><b>{initials(first, last) || '?'}</b>{ok && <i className="dot" />}</span>); };
+const IC = { user: 'M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', sliders: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6', out: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9', chev: 'M6 9l6 6 6-6', phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z', cal: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', check: 'M5 12l5 5L20 7' };
+const Ico = ({ n }) => <svg className="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={IC[n]} /></svg>;
+const when = (d) => { const t = new Date(d); return Number.isNaN(+t) ? '' : t.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' }); };
+const ok = (t) => <span className="bd b2">{t}</span>;
 const row = (k, v, sub) => (<div className="sr" key={k}><div><b>{k}</b>{sub && <small>{sub}</small>}</div><div className="v">{v}</div></div>);
 const TYPE_CLS = { 'Regular Holiday': 'b0', 'Special Non-Working Day': 'b1', 'Islamic Holiday': 'b2' };
+
+const TALLY = [{ type: 'Regular Holiday', label: 'Regular Holidays', cls: 'b0' }, { type: 'Special Non-Working Day', label: 'Special Non-Working Days', cls: 'b1' }, { type: 'Islamic Holiday', label: 'Islamic Holidays', cls: 'b2' }];
 
 function Accounts() {
   const [L, setL] = useState(null);
   useEffect(() => { api('users').then((r) => setL(r.d || [])); }, []);
   if (!L) return 'Loading…';
-  return L.length ? <div className="ag">{L.map((u, i) => { const p = u.name.split(' '); return <div className="ac" key={i}><div className="av big">{initials(p[0], p[p.length - 1])}</div><b>{u.name}</b><small title={u.email}>{u.email}</small></div>; })}</div> : 'No accounts to show.';
+  return L.length ? <div className="ag">{L.map((u, i) => { const p = u.name.split(' '); return <div className="ac" key={i}><Av first={p[0]} last={p[p.length - 1]} size="md" /><b>{u.name}</b><small title={u.email}>{u.email}</small><div className="meta"><span title="Mobile number (masked)"><Ico n="phone" />{u.mobile || '—'}</span><span title="Date joined"><Ico n="cal" />Joined {when(u.joined) || '—'}</span></div></div>; })}</div> : 'No accounts to show.';
 }
-function Holidays() {
-  const [yr, setYr] = useState(new Date().getFullYear() >= 2020 && new Date().getFullYear() <= 2027 ? new Date().getFullYear() : 2026), [cm, setCm] = useState(new Date().getMonth()), [HL, setHL] = useState([]), [err, setErr] = useState(''), [ld, setLd] = useState(true);
+function Holidays({ local }) {
+  const [yr, setYr] = useState(new Date().getFullYear() >= 2020 && new Date().getFullYear() <= 2027 ? new Date().getFullYear() : 2026), [cm, setCm] = useState(new Date().getMonth()), [HL, setHL] = useState([]), [err, setErr] = useState(''), [ld, setLd] = useState(true), [flt, setFlt] = useState(''), [sc, setSc] = useState('');
   useEffect(() => { let on = true; setLd(true); setErr(''); api('holidays/' + yr).then((r) => { if (!on) return; setLd(false); r.ok ? setHL(r.d) : (setHL([]), setErr(r.d.error)); }); return () => { on = false; }; }, [yr]);
   const go = (d) => { let y = yr, m = cm + d; if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; } if (y < 2020 || y > 2027) return; setCm(m); if (y !== yr) { setHL([]); setYr(y); } };
   const f = new Date(yr, cm, 1), n = new Date(yr, cm + 1, 0).getDate(), hm = {};
-  HL.filter((h) => +h.date.slice(5, 7) === cm + 1).forEach((h) => (hm[+h.date.slice(8)] ??= []).push(h));
-  return (<div><div className="ctl"><label>Year<select value={yr} onChange={(e) => setYr(+e.target.value)}>{[2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027].map((y) => <option key={y}>{y}</option>)}</select></label></div>
+  const sOf = (h) => (h.scope === 'local' ? 'local' : 'national');
+  const VIS = local && sc ? HL.filter((h) => sOf(h) === sc) : HL;   // the server already returns the right set (see INCLUDE_LOCAL in islamic.js); the scope switch only exists in the National + Local version
+  const tally = TALLY.map((t) => ({ ...t, label: t.type === 'Islamic Holiday' && !local ? 'National Islamic Holidays' : t.label, year: VIS.filter((h) => h.type === t.type).length, month: VIS.filter((h) => h.type === t.type && +h.date.slice(5, 7) === cm + 1).length }));
+  VIS.filter((h) => +h.date.slice(5, 7) === cm + 1).forEach((h) => (hm[+h.date.slice(8)] ??= []).push(h));
+  const now = new Date(), isToday = (d) => now.getFullYear() === yr && now.getMonth() === cm && now.getDate() === d;
+  const mname = f.toLocaleString('en-PH', { month: 'long' }), tIdx = { 'Regular Holiday': 0, 'Special Non-Working Day': 1, 'Islamic Holiday': 2 };
+  const shown = flt ? VIS.filter((h) => h.type === flt) : VIS;
+  return (<div className="hol">
+    <div className="hbar"><div className="mnav"><button type="button" aria-label="Previous month" disabled={yr === 2020 && cm === 0} onClick={() => go(-1)}>‹</button><h3 aria-live="polite">{f.toLocaleString('en-PH', { month: 'long', year: 'numeric' })}</h3><button type="button" aria-label="Next month" disabled={yr === 2027 && cm === 11} onClick={() => go(1)}>›</button></div>
+      <label className="yrsel">Year<select value={yr} onChange={(e) => setYr(+e.target.value)}>{[2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027].map((y) => <option key={y}>{y}</option>)}</select></label></div>
+    <div className="chips" role="group" aria-label={'Holiday count for ' + yr}>{tally.map((t) => <button type="button" className={'chip ' + t.cls + (flt === t.type ? ' on' : '')} key={t.type} aria-pressed={flt === t.type} title="Click to filter the list" onClick={() => setFlt(flt === t.type ? '' : t.type)}><i />{t.label}<b>{t.year}</b></button>)}</div>
     <p className="err">{err}</p>
-    <div className="mnav"><button type="button" aria-label="Previous month" disabled={yr === 2020 && cm === 0} onClick={() => go(-1)}>‹</button><h3 aria-live="polite">{f.toLocaleString('en-PH', { month: 'long', year: 'numeric' })}</h3><button type="button" aria-label="Next month" disabled={yr === 2027 && cm === 11} onClick={() => go(1)}>›</button></div>
-    <div className="cg">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => <b key={d}>{d}</b>)}{Array.from({ length: f.getDay() }, (_, i) => <i key={'e' + i} />)}
-      {Array.from({ length: n }, (_, i) => { const d = i + 1, h = hm[d]; return <span key={d} className={'d' + (h ? ' hd t' + (({ 'Regular Holiday': 0, 'Special Non-Working Day': 1, 'Islamic Holiday': 2 })[h[0].type] ?? 0) : '')} title={h ? h.map((x) => x.name).join(' / ') : undefined}>{d}</span>; })}</div>
-    <div id="cn">{Object.keys(hm).length ? Object.entries(hm).flatMap(([d, a]) => a.map((h) => <div key={d + h.name}><b>{d}</b> - {h.name} ({h.type}{h.provisional ? ', provisional' : ''})</div>)) : 'No holiday this month.'}</div>
-    <h3>All holidays this year</h3>
-    <div className="hg">{ld ? 'Loading…' : HL.map((h) => <div className="h" key={h.date + h.name}><b>{h.name}</b><br /><small>{new Date(h.date + 'T00:00:00+08:00').toLocaleDateString('en-PH', { weekday: 'short', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}</small><br /><span className={'bd ' + TYPE_CLS[h.type]}>{h.type}</span>{h.provisional && <> <span className="bd b1" title="Computed from the Islamic calendar. The official date may differ by a day.">Provisional</span></>}</div>)}</div></div>);
+    <div className="hwrap">
+      <div className="hcal"><div className="cg">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => <b key={d}>{d}</b>)}{Array.from({ length: f.getDay() }, (_, i) => <i key={'e' + i} />)}
+        {Array.from({ length: n }, (_, i) => { const d = i + 1, h = hm[d]; return <span key={d} className={'d' + (h ? ' hd t' + (tIdx[h[0].type] ?? 0) : '') + (isToday(d) ? ' td' : '')} title={h ? h.map((x) => x.name).join(' / ') : undefined}>{d}</span>; })}</div></div>
+      <aside className="haside">
+        <div id="cn"><h4>{mname}</h4>{Object.keys(hm).length ? Object.entries(hm).flatMap(([d, a]) => a.map((h) => <div className={'mi t' + (tIdx[h.type] ?? 0)} key={d + h.name}><b>{d}</b><span>{h.name}<small>{h.type}{h.scope === 'local' ? ' · Local' : local ? ' · National' : ''}{h.provisional ? ' · provisional' : ''}</small></span></div>)) : <p className="none">No holiday this month.</p>}</div>
+      </aside></div>
+    <h3 className="gt">{flt ? TALLY.find((t) => t.type === flt).label : sc === 'local' ? 'Local & regional holidays' : sc === 'national' ? 'National holidays' : 'All holidays'} in {yr} <small>({shown.length})</small></h3>
+    <div className="hg">{ld ? 'Loading…' : shown.map((h) => <div className="h" key={h.date + h.name}><b>{h.name}</b><br /><small>{new Date(h.date + 'T00:00:00+08:00').toLocaleDateString('en-PH', { weekday: 'short', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}</small><br /><span className={'bd ' + TYPE_CLS[h.type]}>{h.type}</span>{(h.scope === 'local' || h.provisional) && <small className="hn"><br />{h.scope === 'local' ? 'Regional Muslim holiday (PD 1083)' : ''}{h.provisional ? (h.scope === 'local' ? ' · ' : '') + 'Tentative date' : ''}</small>}</div>)}</div></div>);
 }
+const group = (t, rows) => (<><h4 className="gh">{t}</h4><div className="sg">{rows}</div></>);
 function Profile({ u }) {
   const nm = [u.first_name, u.middle_initial, u.last_name].filter(Boolean).join(' ');
-  return (<><div className="ph"><div className="av big">{initials(u.first_name, u.last_name)}</div><div><h3>{nm}</h3><small><Em v={u.email} /></small></div></div>
-    <div className="sg">{row('Birthday', u.birthday || '')}{row('Mobile', u.mobile_number)}{row('Address', [u.house_street, u.city, u.state, u.zip_code, u.country].filter(Boolean).join(', '))}</div></>);
+  return (<><div className="ph"><Av first={u.first_name} last={u.last_name} size="lg" ok /><div><h3>{nm}</h3><small><Em v={u.email} /></small><div className="pills"><span className="bd b2">Account active</span>{u.holiday_scope && <span className="bd b1">{u.holiday_scope === 'national' ? 'National holidays' : 'National + Local holidays'}</span>}</div></div></div>
+    {group('Personal details', [row('First name', u.first_name), row('Middle initial', u.middle_initial || '—'), row('Last name', u.last_name), row('Birthday', u.birthday ? when(u.birthday + 'T00:00:00+08:00') : '')])}
+    {group('Contact', [row('Email', <Em v={u.email} />, u.email_verified ? 'Verified' : 'Not verified'), row('Mobile', u.mobile_number, u.mobile_verified ? 'Verified' : 'Not verified')])}
+    {group('Address', [row('House & street', u.house_street || ''), row('City', u.city || ''), row('State', u.state || ''), row('ZIP', u.zip_code || ''), row('Country', u.country || '')])}
+    {group('Account', [row('Member since', when(u.joined)), row('Status', ok('Active'))])}</>);
 }
-const Settings = ({ out }) => (<><h3>Sign-in and security</h3><div className="sg">{row('Password', <span className="bd b2">Protected</span>, 'We never store your actual password.')}{row('Session', '8 hours', 'After that, you will need to log in again.')}{row('Failed log-ins', '3 attempts', 'Your account locks after 3 wrong passwords. We email you an unlock link that works after 2 minutes.')}</div><button className="danger" onClick={out}>Log out</button></>);
+const Settings = ({ u }) => (<>
+  {group('Sign-in and security', [row('Password', ok('Protected'), 'We never store your actual password.'), row('Session', '8 hours', 'After that, you will need to log in again.'), row('Failed log-ins', '3 attempts', 'Your account locks after 3 wrong passwords. We email you an unlock link that works after 2 minutes.')])}
+  {group('Verification', [row('Email address', u.email_verified ? ok('Verified') : <span className="bd b1">Pending</span>, 'Confirmed through the link we emailed you.'), row('Mobile number', u.mobile_verified ? ok('Verified') : <span className="bd b1">Pending</span>, 'Confirmed with a 6-digit code that lasts 5 minutes.')])}
+  {group('Holiday calendar', [row('Holidays shown', u.holiday_scope === 'national' ? 'National only' : 'National + Local & Regional', u.holiday_scope === 'national' ? 'Official nationwide holidays. Local and regional holidays are hidden.' : 'Includes local and regional Muslim holidays (PD 1083).')])}
+  <p className="hintp">To sign out, use <b>Log out</b> in your account menu at the top right.</p></>);
 
 function Dash({ u }) {
   const [menu, setMenu] = useState(false), [dd, setDd] = useState(false), [m, setM] = useState(null);
@@ -193,19 +224,20 @@ function Dash({ u }) {
   return (<>
     <nav><b className="lg"><Logo s={30} />Activity #2</b>
       <div id="links" className={menu ? 'open' : ''}><A on={pick(() => scrollTo({ top: 0, behavior: 'smooth' }))}>Dashboard</A><A on={pick(() => setM('p'))}>Profile</A><A on={pick(() => setM('s'))}>Settings</A><A on={pick(() => setM('h'))}>Philippine Holidays</A></div>
-      <div className="dd"><a className="pfb" role="button" tabIndex={0} aria-label="Account menu" aria-expanded={dd} onClick={togDd} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), togDd())}><span className="av">{ini}</span><span className="pt"><b>{full}</b><small>{u.email}</small></span><span className="cr">▾</span></a>
-        {dd && <div id="ddm"><div className="av big">{ini}</div><b className="dn">{full}</b><p><Em v={u.email} /></p><small style={{ opacity: 0.6 }}>build v2</small><div className="bt"><button id="out" onClick={out}>Log out</button></div></div>}</div>
+      <div className="dd"><a className="pfb" role="button" tabIndex={0} aria-label="Account menu" aria-expanded={dd} onClick={togDd} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), togDd())}><Av first={u.first_name} last={u.last_name} size="sm" ok /><span className="pt"><b>{full}</b><small>{u.email}</small></span><span className="cr"><Ico n="chev" /></span></a>
+        {dd && <div id="acct" role="menu"><div className="ah"><Av first={u.first_name} last={u.last_name} size="lg" ok /><b className="dn">{full}</b><p><Em v={u.email} /></p><span className="vb"><Ico n="check" />Verified account</span></div>
+          <button id="out" role="menuitem" onClick={out}><Ico n="out" />Log out</button><small className="bv">build v3</small></div>}</div>
       <button id="burger" aria-label="Menu" aria-expanded={menu} onClick={() => { setDd(false); setMenu(!menu); }}>{menu ? '✕' : '☰'}</button></nav>
     <section className="hero"><h1>Mabuhay, <span>{u.first_name}</span></h1><p>Your account is secure. Browse accounts and check the official Philippine holiday calendar.</p><div className="ctas"><button className="alt" onClick={() => { setMenu(false); setDd(false); setM('a'); }}>View More</button></div></section>
     {m && <div className="ov" onClick={(e) => e.target === e.currentTarget && setM(null)}><div className={'modal' + (small ? ' sm' : '')} role="dialog" aria-modal="true">
       <div className="mh">{!small && <div className="tabs"><button className={m === 'a' ? '' : 'ghost'} onClick={() => setM('a')}>Accounts</button><button className={m === 'h' ? '' : 'ghost'} onClick={() => setM('h')}>Calendars / Holidays</button></div>}<b id="mt">{m === 'p' ? 'Profile' : m === 's' ? 'Settings' : ''}</b><button className="ghost" id="cl" onClick={() => setM(null)}>Close</button></div>
-      <div className="mb">{m === 'a' && <Accounts />}{m === 'h' && <Holidays />}{m === 'p' && <Profile u={u} />}{m === 's' && <Settings out={out} />}</div></div></div>}
+      <div className="mb">{m === 'a' && <Accounts />}{m === 'h' && <Holidays local={u.holiday_scope !== 'national'} />}{m === 'p' && <Profile u={u} />}{m === 's' && <Settings u={u} />}</div></div></div>}
   </>);
 }
 
 /* ---------- root ---------- */
 export default function App() {
-  const [ready, setReady] = useState(false), [user, setUser] = useState(null), [otp, setOtp] = useState(null), [view, setView] = useState('login'), [note, setNote] = useState(null), [cool, setCool] = useState(null), [left, setLeft] = useState(0);
+  const [ready, setReady] = useState(false), [user, setUser] = useState(null), [otp, setOtp] = useState(null), [view, setView] = useState('login'), [note, setNote] = useState(null), [cool, setCool] = useState(null), [left, setLeft] = useState(0), [regLock, setRegLock] = useState(false);
   const msg = (t, bad) => setNote(t ? { t, bad } : null);
   const gate = (u) => { if (u.mobile_verified) setUser(u); else setOtp(u.mobile_number); };
   useEffect(() => {
@@ -225,13 +257,14 @@ export default function App() {
   }, [cool]);
   if (!ready) return null;
   if (user) return <Dash u={user} />;
-  const toLogin = (t) => { setOtp(null); setView('login'); msg(t); };
+  const toLogin = (t, bad) => { setOtp(null); setView('login'); msg(t, bad); };
+  const limited = () => { setRegLock(true); toLogin('Registration limit reached. To prevent bot spam, each IP address can make at most 5 registration attempts per hour. Please try again later, or log in if you already have an account.', 1); };
   return (<main id="auth"><div className="card"><div className="banner"><Logo /><div><h1 className="brand">Activity #2</h1><p>Registration, verification &amp; Philippine holidays</p></div></div>
-    <div className="cb">{!otp && <div className="tabs"><button className={view === 'login' ? '' : 'ghost'} onClick={() => setView('login')}>Log in</button><button className={view === 'reg' ? '' : 'ghost'} onClick={() => setView('reg')}>Create account</button></div>}
+    <div className="cb">{!otp && <div className="tabs"><button className={view === 'login' ? '' : 'ghost'} onClick={() => setView('login')}>Log in</button><button className={view === 'reg' ? '' : 'ghost'} disabled={regLock} title={regLock ? 'Registration is paused for this IP address. Try again in an hour.' : undefined} onClick={() => setView('reg')}>Create account</button></div>}
       {note && <div className={'msg' + (note.bad ? ' bad' : '')}>{note.t}</div>}
       {cool && left > 0 && <div className="msg bad">Cooling period started. Your account will unlock in <b>{Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')}</b>. Keep this page open.</div>}
       {otp ? <Otp phone={otp} onOk={setUser} onLogin={toLogin} />
-        : view === 'login' ? <Login onOk={gate} go={setView} />
-          : <Register go={setView} done={() => toLogin('Account created. Check your email and click the verification link. After that, we will text a code to your mobile number.')} />}
+        : view === 'login' ? <Login onOk={gate} go={(v) => !(v === 'reg' && regLock) && setView(v)} />
+          : <Register go={setView} limited={limited} done={() => toLogin('Account created. Check your email and click the verification link. After that, we will text a code to your mobile number.')} />}
     </div></div></main>);
 }
