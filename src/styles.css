@@ -1,4 +1,3 @@
-
 :root{--sea:#10265a;--red:#c8102e;--mango:#f2b632;--ink:#17222d;--mist:#eef3f7;--bad:#b3261e;--ok:#1b7f4b}
 *{box-sizing:border-box}body{margin:0;font:15px/1.5 Poppins,system-ui,sans-serif;color:var(--ink);background:var(--mist)}
 [hidden]{display:none!important}h1,h2{font-family:inherit;font-weight:600;line-height:1.2}
@@ -13,7 +12,7 @@ label{font-size:.9rem;font-weight:700}.err{color:var(--bad);font-size:.82rem;min
 nav{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:.25rem 1.2rem;padding:.7rem 1rem;background:#10265af2;color:#fff}
 nav b{font-weight:700;font-size:1.2rem;margin-right:auto}nav a{color:#fff;text-decoration:none;cursor:pointer}#burger{display:block;background:none;font-size:1.4rem}
 #links{display:none;width:100%;flex-direction:column;align-items:flex-start;gap:.8rem}#links.open{display:flex}.dd{position:relative}#ddm{position:absolute;right:0;top:2.4rem;background:#fff;color:var(--ink);border-radius:6px;padding:.6rem;min-width:180px}
-@media(min-width:701px){#burger{display:none}#links,#links.open{display:flex;width:auto;flex-direction:row;align-items:center;gap:1.2rem;flex-wrap:wrap}}.lg{display:flex;align-items:center;gap:.5rem}.pfb{display:flex;align-items:center;gap:.6rem;padding:.35rem .7rem;border:1px solid #ffffff26;border-radius:10px;background:#ffffff0f}.pfb .av{width:40px;height:40px;margin-right:0;font-size:.85rem}.pt{display:flex;flex-direction:column;line-height:1.25;text-align:left;min-width:0}.pt b{font-size:.95rem}.pt small{color:#a9bbcf;font-size:.75rem;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cr{font-size:.7rem;color:#a9bbcf}.av{position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#2e2e2e,#000);color:#fff;font-size:.75rem;font-weight:700;border:2px solid var(--red);margin-right:.4rem}.av::after{content:"";position:absolute;right:-5px;bottom:-4px;width:10px;height:12px;background:var(--red);clip-path:polygon(0 0,100% 0,50% 50%,100% 100%,0 100%,50% 50%)}.av.big{width:56px;height:56px;font-size:1.1rem;margin:0 auto .4rem}#ddm{text-align:center}
+@media(min-width:901px){#burger{display:none}#links,#links.open{display:flex;width:auto;flex-direction:row;align-items:center;gap:1.2rem;flex-wrap:wrap}}.lg{display:flex;align-items:center;gap:.5rem}.pfb{display:flex;align-items:center;gap:.6rem;padding:.35rem .7rem;border:1px solid #ffffff26;border-radius:10px;background:#ffffff0f}.pfb .av{width:40px;height:40px;margin-right:0;font-size:.85rem}.pt{display:flex;flex-direction:column;line-height:1.25;text-align:left;min-width:0}.pt b{font-size:.95rem}.pt small{color:#a9bbcf;font-size:.75rem;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cr{font-size:.7rem;color:#a9bbcf}.av{position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#2e2e2e,#000);color:#fff;font-size:.75rem;font-weight:700;border:2px solid var(--red);margin-right:.4rem}.av::after{content:"";position:absolute;right:-5px;bottom:-4px;width:10px;height:12px;background:var(--red);clip-path:polygon(0 0,100% 0,50% 50%,100% 100%,0 100%,50% 50%)}.av.big{width:56px;height:56px;font-size:1.1rem;margin:0 auto .4rem}#ddm{text-align:center}
 .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:6rem 1.5rem 3rem;color:#fff;background:linear-gradient(90deg,rgba(8,18,45,.92),rgba(8,18,45,.55) 60%,rgba(120,10,25,.4)),url(/hero.jpg) center/cover,url(/hero.svg) center/cover,var(--sea)}
 .hero h1{font-size:clamp(2.2rem,7vw,4.5rem);max-width:14ch;margin:0 0 1rem}.hero p{max-width:46ch}.ctas{display:flex;gap:.8rem;flex-wrap:wrap;margin-top:1.2rem}
 .ov{position:fixed;inset:0;z-index:9;background:#000a;display:flex;align-items:center;justify-content:center;padding:1rem}.modal{background:#fff;border-radius:10px;width:min(900px,100%);max-height:90vh;overflow:auto;padding:1.2rem}
@@ -64,7 +63,7 @@ nav{padding:.6rem clamp(1rem,2.5vw,2rem);background:rgba(11,27,68,.94);backdrop-
 #ddm .bt{display:flex;gap:.5rem}#ddm .bt button{flex:1}
 #ddm .ghost{color:#fff;border-color:#ffffff73}#ddm .ghost:hover{background:#ffffff1f}
 #ddm #out{background:var(--red)}#ddm #out:hover{filter:brightness(1.1)}
-@media(max-width:700px){.dd,.pfb{width:100%}#ddm{position:static;width:100%;margin-top:.6rem}#ddm::before{display:none}}
+@media(max-width:900px){.dd,.pfb{width:100%}#ddm{position:static;width:100%;margin-top:.6rem}#ddm::before{display:none}}
 .hero{padding:6rem clamp(1rem,2.5vw,2rem) 3rem}
 .chips{display:flex;gap:.5rem;flex-wrap:wrap;margin:0 0 1.2rem}
 .chip{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .85rem;border-radius:99px;font-size:.8rem;font-weight:600;background:#ffffff1f;border:1px solid #ffffff33;backdrop-filter:blur(6px)}
@@ -116,9 +115,9 @@ img,svg{max-width:100%}
 
 /* ---- navbar ---- */
 nav b{min-width:0}
-@media(min-width:701px) and (max-width:900px){.pt small{display:none}#links{gap:.4rem}#links>a{padding:.4rem .55rem}}
-@media(min-width:701px){#ddm{width:min(272px,calc(100vw - 1.6rem))}}
-@media(max-width:700px){nav{max-height:100dvh;overflow-y:auto}.pt small{max-width:none}}
+@media(min-width:901px) and (max-width:1100px){.pt small{display:none}#links{gap:.4rem}#links>a{padding:.4rem .55rem}}
+@media(min-width:901px){#ddm{width:min(272px,calc(100vw - 1.6rem))}}
+@media(max-width:900px){nav{max-height:100dvh;overflow-y:auto}.pt small{max-width:none}}
 
 /* ---- hero ---- */
 .hero{min-height:100dvh}
@@ -169,3 +168,78 @@ nav b{min-width:0}
   .cbl li{padding:.75rem .8rem}
 }
 /* ================= END RESPONSIVE OVERRIDES ================= */
+
+/* ================= RESPONSIVE FIXES v2 (small -> medium devices) ================= */
+/* 1. Form grid: tracks may shrink below content size (this was pushing the register form
+      ~75px outside the card on phones), and every grid item may shrink. */
+.grid{grid-template-columns:minmax(0,1fr)}
+@container (min-width:440px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@supports not (container-type:inline-size){@media(min-width:560px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}}
+.grid>*,.grid>*>*,.combo,.pw,.row,label{min-width:0}
+.row>.pre{flex:none}
+.sug .row{flex-wrap:nowrap!important;align-items:stretch}.sug code{flex:1 1 0;min-width:0;margin:0}.sug .row button{flex:none}
+.rules{row-gap:.15rem}
+input,select{max-width:100%}
+
+/* 2. Tabs: never squeeze labels into odd wraps; tighter on very small screens */
+.tabs button,.modal .tabs button{white-space:nowrap}
+@media(max-width:420px){.tabs button,#auth .tabs button{padding:.6rem .4rem;font-size:.85rem}.modal .tabs button{white-space:normal;line-height:1.2;font-size:.8rem}}
+
+/* 3. Remove dead space created by empty error paragraphs / first headings */
+p.err:empty{display:none}
+.mb>h3:first-child{margin-top:0}
+.mnav{margin-top:.9rem}
+
+/* 4. Navbar: burger menu up to 900px, so tablets never get a 2-row wrapped bar */
+@media(min-width:901px){.pt small{max-width:150px}}
+@media(max-width:900px){
+  nav{max-height:100dvh;overflow-y:auto;overscroll-behavior:contain}
+  #links{padding:.3rem 0 .5rem}
+  #links>a{width:100%;padding:.65rem .8rem}
+  .dd{width:100%}
+  .pfb{width:100%;min-width:0}.pfb .pt{flex:1;min-width:0}.pfb .pt b,.pfb .pt small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  #ddm{position:static;width:100%;margin-top:.6rem;animation:none}#ddm::before{display:none}
+}
+#burger{min-width:44px;min-height:44px;line-height:1;border-radius:8px}
+
+/* 5. Hero: keep content clear of the fixed navbar, including landscape phones */
+.hero{padding-top:max(5.5rem,calc(4.5rem + env(safe-area-inset-top,0px)))}
+@media(max-height:560px) and (orientation:landscape){.hero{padding-top:5rem;padding-bottom:1.5rem}.hero h1{font-size:clamp(1.8rem,6vw,2.6rem);margin-bottom:.6rem}}
+@media(min-width:601px) and (max-width:900px){.hero h1{max-width:18ch}}
+
+/* 6. Modals: compact header on phones (title/tabs + round close button on one row) */
+#mt:empty{display:none}
+@media(max-width:600px){
+  .mh{flex-wrap:nowrap;align-items:center;gap:.6rem}
+  .mh .tabs{flex:1 1 0;min-width:0;order:1}
+  #mt{order:1;flex:1;min-width:0}
+  #cl{order:2;flex:none;position:relative;width:40px;height:40px;min-height:40px;padding:0;border-radius:50%;font-size:0;line-height:0}
+  #cl::before{content:"\2715";font-size:1rem;line-height:1;font-weight:700}
+  .mb{padding:.9rem .9rem calc(.9rem + env(safe-area-inset-bottom,0px))}
+}
+@media(min-width:601px) and (max-width:900px){.modal,.modal.sm{width:min(94vw,760px)}}
+
+/* 7. Calendar & holiday controls */
+.ctl label{flex:1 1 140px}
+@media(max-width:400px){.cg .d{min-height:2.3rem}.hg{grid-template-columns:minmax(0,1fr)}}
+
+/* 8. Account cards: tidy single-line email with ellipsis instead of mid-word breaks */
+.ac{overflow-wrap:normal;word-break:normal}
+.ac b{overflow-wrap:anywhere}
+.ac small{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag{grid-template-columns:repeat(auto-fill,minmax(min(100%,170px),1fr))}
+@media(min-width:601px){.ag{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}}
+
+/* 9. Profile & settings rows */
+.ph{flex-wrap:nowrap}.ph>div:last-child{min-width:0;overflow-wrap:anywhere}
+.ph h3{line-height:1.25}
+.sr .v{overflow-wrap:anywhere}
+@media(max-width:480px){.sr{padding:.75rem .85rem}}
+
+/* 10. OTP / generic button rows wrap instead of overflowing; phones stack them full width */
+.row:not(.sug .row):has(>button){flex-wrap:wrap!important}
+@media(max-width:420px){.row:not(.sug .row):has(>button)>button{flex:1 1 100%}}
+
+/* 11. Landscape & short screens: auth card scrolls instead of being clipped */
+@media(max-height:560px){#auth{align-items:flex-start}#auth .card{margin:.5rem auto}}
+/* ================= END RESPONSIVE FIXES v2 ================= */

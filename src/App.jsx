@@ -151,7 +151,7 @@ function Accounts() {
   const [L, setL] = useState(null);
   useEffect(() => { api('users').then((r) => setL(r.d || [])); }, []);
   if (!L) return 'Loading…';
-  return L.length ? <div className="ag">{L.map((u, i) => { const p = u.name.split(' '); return <div className="ac" key={i}><div className="av big">{initials(p[0], p[p.length - 1])}</div><b>{u.name}</b><small>{u.email}</small></div>; })}</div> : 'No accounts to show.';
+  return L.length ? <div className="ag">{L.map((u, i) => { const p = u.name.split(' '); return <div className="ac" key={i}><div className="av big">{initials(p[0], p[p.length - 1])}</div><b>{u.name}</b><small title={u.email}>{u.email}</small></div>; })}</div> : 'No accounts to show.';
 }
 function Holidays() {
   const [yr, setYr] = useState(new Date().getFullYear() >= 2020 && new Date().getFullYear() <= 2027 ? new Date().getFullYear() : 2026), [cm, setCm] = useState(new Date().getMonth()), [HL, setHL] = useState([]), [err, setErr] = useState(''), [ld, setLd] = useState(true);
