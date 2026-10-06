@@ -1,35 +1,38 @@
-// Islamic holidays for the Philippines.
-// Why this exists: Eid'l Fitr / Eid'l Adha follow the moon sighting, so holiday providers (Nager.Date) often leave them out.
-// If the provider already returned one, it is kept; otherwise it is computed here from the Islamic (Umm al-Qura) calendar.
-// Computed dates are PROVISIONAL (the PH government/NCMF may declare a day earlier or later).
-// To use the official proclaimed date, put it in data/islamic-dates.json, e.g. { "2026": { "eid_fitr": "2026-03-20" } }  (keys: eid_fitr, eid_adha)
+// OFFICIAL Philippine holidays only (what Malacañang proclaims) - no solstices, equinoxes, "Ramadan start", Isra Mi'raj, Maulid, etc.
+// 1) Years in OFFICIAL below use the annual proclamation exactly (2026 = Proc. 1006, 2027 = Proc. 1427).
+// 2) Other years use the provider list, but only names that are real PH national holidays are kept.
+// 3) Eid'l Fitr / Eid'l Adha are shown ONLY when the President proclaimed them (dates in islamic-dates.json).
+//    No proclamation yet for a year = no Eid shown for that year. Add the date to islamic-dates.json when it is proclaimed.
 import fs from 'node:fs';
 
-const KINDS = [
-  { key: 'eid_fitr', m: 10, d: 1, name: "Eid'l Fitr (Feast of Ramadan)", local: 'Eidul Fitr', seen: /fitr/i },
-  { key: 'eid_adha', m: 12, d: 10, name: "Eid'l Adha (Feast of Sacrifice)", local: 'Eidul Adha', seen: /adha/i },
-];
-const fmt = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn', { day: 'numeric', month: 'numeric', year: 'numeric', timeZone: 'UTC' });
+const R = 'Regular Holiday', S = 'Special Non-Working Day', I = 'Islamic Holiday';
+const OFFICIAL = {
+  2026: [
+    ['01-01', "New Year's Day", R], ['02-17', 'Chinese New Year', S], ['04-02', 'Maundy Thursday', R], ['04-03', 'Good Friday', R],
+    ['04-04', 'Black Saturday', S], ['04-09', 'Araw ng Kagitingan (Day of Valor)', R], ['05-01', 'Labor Day', R], ['06-12', 'Independence Day', R],
+    ['08-21', 'Ninoy Aquino Day', S], ['08-31', 'National Heroes Day', R], ['11-01', "All Saints' Day", S], ['11-02', "All Souls' Day", S],
+    ['11-30', 'Bonifacio Day', R], ['12-08', 'Feast of the Immaculate Conception of Mary', S], ['12-24', 'Christmas Eve', S],
+    ['12-25', 'Christmas Day', R], ['12-30', 'Rizal Day', R],
+  ],
+  2027: [
+    ['01-01', "New Year's Day", R], ['02-06', 'Chinese New Year', S], ['03-25', 'Maundy Thursday', R], ['03-26', 'Good Friday', R],
+    ['03-27', 'Black Saturday', S], ['04-09', 'Araw ng Kagitingan (Day of Valor)', R], ['05-01', 'Labor Day', R], ['06-12', 'Independence Day', R],
+    ['08-21', 'Ninoy Aquino Day', S], ['08-30', 'National Heroes Day', R], ['11-01', "All Saints' Day", S], ['11-02', "All Souls' Day", S],
+    ['11-30', 'Bonifacio Day', R], ['12-08', 'Feast of the Immaculate Conception of Mary', S], ['12-24', 'Christmas Eve', S],
+    ['12-25', 'Christmas Day', R], ['12-30', 'Rizal Day', R], ['12-31', 'Last Day of the Year', S],
+  ],
+};
+// names a provider may return that are genuine PH national holidays (anything else is dropped)
+const REAL = /new year'?s (day|eve)|last day of the year|maundy|holy thursday|good friday|black saturday|kagitingan|day of valor|labou?r day|independence day|ninoy|national heroes|all saints|all souls|immaculate|bonifacio|christmas|rizal|chinese new year|lunar new year/i;
 
-let overrides = {};
-try { overrides = JSON.parse(fs.readFileSync(new URL('./islamic-dates.json', import.meta.url), 'utf8')); } catch { /* optional file */ }
-
-function computed(year) {
-  const out = [];
-  for (let t = Date.UTC(year, 0, 1, 12); t < Date.UTC(year + 1, 0, 1, 12); t += 864e5) {
-    const p = Object.fromEntries(fmt.formatToParts(t).map((x) => [x.type, x.value]));
-    for (const k of KINDS) if (+p.month === k.m && +p.day === k.d) out.push({ k, date: new Date(t).toISOString().slice(0, 10) });
-  }
-  return out;
-}
+const EID = { eid_fitr: { name: "Eid'l Fitr (Feast of Ramadan)", local: 'Eidul Fitr' }, eid_adha: { name: "Eid'l Adha (Feast of Sacrifice)", local: 'Eidul Adha' } };
+let proclaimed = {};
+try { proclaimed = JSON.parse(fs.readFileSync(new URL('./islamic-dates.json', import.meta.url), 'utf8')); } catch { /* file missing = no Eid shown */ }
 
 export function withIslamic(year, list) {
-  const have = (k) => list.some((h) => k.seen.test(`${h.name} ${h.local}`));
-  const extra = [];
-  for (const { k, date } of computed(year)) {
-    if (have(k)) continue;                                   // provider already supplied it -> trust the provider
-    const o = overrides?.[year]?.[k.key];
-    extra.push({ date: o ?? date, name: k.name, local: k.local, type: 'Islamic Holiday', provisional: !o });
-  }
-  return [...list, ...extra].sort((a, b) => a.date.localeCompare(b.date));
+  const base = OFFICIAL[year]
+    ? OFFICIAL[year].map(([md, name, type]) => ({ date: `${year}-${md}`, name, local: '', type }))
+    : list.filter((h) => h.type !== I && REAL.test(`${h.name} ${h.local}`));
+  const eid = Object.entries(EID).flatMap(([k, v]) => (proclaimed?.[year]?.[k] ? [{ date: proclaimed[year][k], name: v.name, local: v.local, type: I }] : []));
+  return [...base, ...eid].sort((a, b) => a.date.localeCompare(b.date));
 }
