@@ -213,7 +213,7 @@ function Dash({ u }) {
   const togDd = () => { setMenu(false); setDd(!dd); };
   return (<>
     <nav><b className="lg"><Logo s={30} />Hiraya</b>
-      <div id="links" className={menu ? 'open' : ''}><A on={pick(() => setM('p'))}>Profile</A><A on={pick(() => setM('s'))}>Settings</A><A on={pick(() => setM('h'))}>Philippine Holidays</A></div>
+      <div id="links" className={menu ? 'open' : ''}><A on={pick(() => {})}>Dashboard</A><A on={pick(() => setM('p'))}>Profile</A><A on={pick(() => setM('s'))}>Settings</A><A on={pick(() => setM('h'))}>Philippine Holidays</A></div>
       <div className="dd"><a className="pfb" role="button" tabIndex={0} aria-label="Account menu" aria-expanded={dd} onClick={togDd} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), togDd())}><Av first={u.first_name} last={u.last_name} size="sm" ok /><span className="pt"><b>{full}</b><small>{u.email}</small></span><span className="cr"><Ico n="chev" /></span></a>
         {dd && <div id="acct" role="menu"><div className="ah"><Av first={u.first_name} last={u.last_name} size="lg" ok /><b className="dn">{full}</b><p><Em v={u.email} /></p><span className="vb"><Ico n="check" />Verified account</span></div>
           <button id="out" role="menuitem" onClick={out}><Ico n="out" />Log out</button><small className="bv">build v3</small></div>}</div>
