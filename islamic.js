@@ -37,7 +37,7 @@ try { proclaimed = JSON.parse(fs.readFileSync(new URL('./islamic-dates.json', im
 // LOCAL / REGIONAL Islamic holidays (PD 1083, Code of Muslim Personal Laws, Art. 169): observed in Muslim-majority areas such as BARMM, NOT nationwide.
 // Set INCLUDE_LOCAL = false  -> "National Regular Islamic Holidays" version (Eid'l Fitr + Eid'l Adha only).
 // Set INCLUDE_LOCAL = true   -> "National + Local & Regional Islamic Holidays" version.
-export const INCLUDE_LOCAL = true;
+export const INCLUDE_LOCAL = false;
 // Local dates come ONLY from islamic-dates.json (the dates confirmed from Google). Nothing is computed or guessed: no date there = not shown.
 // A date written with a trailing "~" (e.g. "2025-06-27~") is shown with a Provisional badge.
 const LOCAL = [
