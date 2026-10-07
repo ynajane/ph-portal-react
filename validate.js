@@ -22,7 +22,7 @@ export function validate(b) {
   else {
     const [, mo, d, y] = m.map(Number), dt = new Date(Date.UTC(y, mo - 1, d));
     if (dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d || y < 1900) e.birthday = 'Enter a real calendar date.';
-    else { const t = new Date(); if (dt > new Date(Date.UTC(t.getUTCFullYear() - 13, t.getUTCMonth(), t.getUTCDate()))) e.birthday = 'You must be at least 13 years old.'; }
+    else { const t = new Date(); if (dt > new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()))) e.birthday = 'Birthday cannot be in the future.'; else if (dt > new Date(Date.UTC(t.getUTCFullYear() - 13, t.getUTCMonth(), t.getUTCDate()))) e.birthday = 'You must be at least 13 years old.'; }
   }
   const p = String(b.password ?? '');
   if (p.length < 12 || p.length > 128 || !/[A-Z]/.test(p) || !/[a-z]/.test(p) || !/\d/.test(p) || !/[^A-Za-z0-9]/.test(p)) e.password = '12+ characters with upper, lower, number and special character.';
