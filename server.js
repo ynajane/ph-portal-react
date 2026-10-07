@@ -15,7 +15,7 @@ import { geo, check, checkAddress, checkEmail } from './geo.js';
 import { classify } from './holidays.js';
 import { withIslamic, INCLUDE_LOCAL } from './islamic.js';
 
-const E = process.env, PROD = E.NODE_ENV === 'production', APP = E.APP_NAME ?? 'Activity #2';
+const E = process.env, PROD = E.NODE_ENV === 'production', APP = E.APP_NAME ?? 'Hiraya';
 const SITE = (E.SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 const isLocalDb = /localhost|127\.0\.0\.1/.test(E.DATABASE_URL ?? '');
 const db = new pg.Pool({ connectionString: E.DATABASE_URL, ssl: isLocalDb ? undefined : { rejectUnauthorized: false } });

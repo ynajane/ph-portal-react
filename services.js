@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-const E = process.env, APP = E.APP_NAME ?? 'Activity #2';
+const E = process.env, APP = E.APP_NAME ?? 'Hiraya';
 const smtp = E.SMTP_HOST ? nodemailer.createTransport({ host: E.SMTP_HOST, port: +(E.SMTP_PORT ?? 587), secure: +(E.SMTP_PORT ?? 587) === 465, auth: { user: E.SMTP_USER, pass: E.SMTP_PASS } }) : null;
 const parseFrom = (f = '') => { const m = /^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/.exec(f); return m ? { name: m[1].trim() || APP, email: m[2].trim() } : { name: APP, email: f.trim() }; };
 

@@ -3,7 +3,7 @@ import { api, initCsrf } from './api.js';
 
 const emOk = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const fold = (x) => String(x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-const Logo = ({ s = 46 }) => (<svg width={s} height={s} viewBox="0 0 32 32" role="img" aria-label="Activity #2 logo"><circle cx="16" cy="16" r="14" fill="#c8102e" stroke="#f2b632" strokeWidth="2" /><path fill="#fff" fillRule="evenodd" d="M16 4.5l10.5 23h-5l-1.6-4h-7.8l-1.6 4h-5zM16 12.6l-2.5 6.1h5z" /></svg>);
+const Logo = ({ s = 46 }) => (<svg width={s} height={s} viewBox="0 0 32 32" role="img" aria-label="Hiraya logo"><circle cx="16" cy="16" r="14" fill="#6f4a2b" stroke="#d4a23a" strokeWidth="2" /><path d="M22.58 15.2L25.87 13.3M19.8 12.42L21.7 9.13M16 11.4L16 7.6M12.2 12.42L10.3 9.13M9.42 15.2L6.13 13.3" stroke="#d4a23a" strokeWidth="1.8" strokeLinecap="round" fill="none" /><path d="M10.4 19a5.6 5.6 0 0 1 11.2 0z" fill="#d4a23a" /><path d="M7.5 19h17M11.5 22.4h9M13.5 25.4h5" stroke="#fff3d6" strokeWidth="1.6" strokeLinecap="round" fill="none" /></svg>);
 const Eye = ({ off }) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{off ? <><path d="M17.94 17.94A10.9 10.9 0 0 1 12 19C5 19 1 12 1 12a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.1 9.1 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" /><path d="M1 1l22 22" /></> : <><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" /><circle cx="12" cy="12" r="3" /></>}</svg>);
 
 function Pw({ id, value, onChange, onBlur, auto }) {
@@ -155,7 +155,7 @@ function Otp({ phone, onOk, onLogin }) {
 /* ---------- dashboard ---------- */
 const Em = ({ v }) => { const i = String(v).indexOf('@'); return i < 0 ? v : <>{v.slice(0, i)}<wbr />{v.slice(i)}</>; };
 const initials = (a, b) => (((a || '')[0] || '') + ((b || '')[0] || '')).toUpperCase();
-const PAL = [['#e11d48', '#7f1034'], ['#2563eb', '#142a6b'], ['#0d9488', '#064e46'], ['#d97706', '#78350f'], ['#7c3aed', '#3b1480'], ['#db2777', '#7a0d3a']];
+const PAL = [['#b4532f', '#6f2e17'], ['#8a6a2f', '#4d3a14'], ['#5f7a4a', '#2f4220'], ['#a8742c', '#6b4410'], ['#8c4a5e', '#52202f'], ['#4f6f78', '#243f47']];
 const tone = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PAL[h % PAL.length]; };
 const Av = ({ first, last, size = 'md', ok }) => { const [a, b] = tone((first || '') + (last || '')); return (<span className={'avx avx-' + size} style={{ '--a': a, '--b': b }} aria-hidden="true"><b>{initials(first, last) || '?'}</b>{ok && <i className="dot" />}</span>); };
 const IC = { user: 'M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', sliders: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6', out: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9', chev: 'M6 9l6 6 6-6', phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z', cal: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', check: 'M5 12l5 5L20 7', users: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75', flag: 'M4 22V4M4 4h13l-2 4 2 4H4' };
@@ -245,7 +245,7 @@ function Dash({ u }) {
   const full = u.first_name + ' ' + u.last_name, ini = initials(u.first_name, u.last_name), small = m === 'p' || m === 's', pick = (f) => () => { setMenu(false); setDd(false); f(); };
   const togDd = () => { setMenu(false); setDd(!dd); };
   return (<>
-    <nav><b className="lg"><Logo s={30} />Activity #2</b>
+    <nav><b className="lg"><Logo s={30} />Hiraya</b>
       <div id="links" className={menu ? 'open' : ''}><A on={pick(() => document.getElementById('dash')?.scrollIntoView({ behavior: 'smooth' }))}>Dashboard</A><A on={pick(() => setM('p'))}>Profile</A><A on={pick(() => setM('s'))}>Settings</A><A on={pick(() => setM('h'))}>Philippine Holidays</A></div>
       <div className="dd"><a className="pfb" role="button" tabIndex={0} aria-label="Account menu" aria-expanded={dd} onClick={togDd} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), togDd())}><Av first={u.first_name} last={u.last_name} size="sm" ok /><span className="pt"><b>{full}</b><small>{u.email}</small></span><span className="cr"><Ico n="chev" /></span></a>
         {dd && <div id="acct" role="menu"><div className="ah"><Av first={u.first_name} last={u.last_name} size="lg" ok /><b className="dn">{full}</b><p><Em v={u.email} /></p><span className="vb"><Ico n="check" />Verified account</span></div>
@@ -283,7 +283,7 @@ export default function App() {
   if (user) return <Dash u={user} />;
   const toLogin = (t, bad) => { setOtp(null); setView('login'); msg(t, bad); };
   const limited = () => { setRegLock(true); toLogin('Registration limit reached. To prevent bot spam, each IP address can make at most 5 registration attempts per hour. Please try again later, or log in if you already have an account.', 1); };
-  return (<main id="auth"><div className="card"><div className="banner"><Logo /><div><h1 className="brand">Activity #2</h1><p>Registration, verification &amp; Philippine holidays</p></div></div>
+  return (<main id="auth"><div className="card"><div className="banner"><Logo /><div><h1 className="brand">Hiraya</h1><p>Registration, verification &amp; Philippine holidays</p></div></div>
     <div className="cb">{!otp && <div className="tabs"><button className={view === 'login' ? '' : 'ghost'} onClick={() => setView('login')}>Log in</button><button className={view === 'reg' ? '' : 'ghost'} disabled={regLock} title={regLock ? 'Registration is paused for this IP address. Try again in an hour.' : undefined} onClick={() => setView('reg')}>Create account</button></div>}
       {note && <div className={'msg' + (note.bad ? ' bad' : '')}>{note.t}</div>}
       {cool && left > 0 && <div className="msg bad">Cooling period started. Your account will unlock in <b>{Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')}</b>. Keep this page open.</div>}
