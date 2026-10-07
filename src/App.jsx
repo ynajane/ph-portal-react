@@ -211,7 +211,7 @@ function Profile({ u }) {
     {group('Account', [row('Member since', when(u.joined)), row('Status', ok('Active'))])}</>);
 }
 const Settings = ({ u }) => (<>
-  {group('Sign-in and security', [row('Password', ok('Protected'), 'We never store your actual password.'), row('Session', '8 hours', 'After that, you will need to log in again.'), row('Failed log-ins', '3 attempts', 'Your account locks after 3 wrong passwords. We email you an unlock link that works after 2 minutes.')])}
+  {group('Sign-in and security', [row('Password', ok('Protected'), 'We never store your actual password.'), row('Failed log-ins', '3 attempts', 'Your account locks after 3 wrong passwords. We email you an unlock link that works after 2 minutes.')])}
   {group('Verification', [row('Email address', u.email_verified ? ok('Verified') : <span className="bd b1">Pending</span>, 'Confirmed through the link we emailed you.'), row('Mobile number', u.mobile_verified ? ok('Verified') : <span className="bd b1">Pending</span>, 'Confirmed with a 6-digit code that lasts 5 minutes.')])}
   <p className="hintp">To sign out, use <b>Log out</b> in your account menu at the top right.</p></>);
 

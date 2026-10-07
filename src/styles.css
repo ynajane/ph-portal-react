@@ -428,3 +428,8 @@ input,select{background:#fffdf8}
 .sg{background:var(--cream)}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline-color:var(--mango)}
 /* ================= END BEIGE THEME ================= */
+
+/* ===== mobile fixes: avatar initials stay centered, holiday chips are compact ===== */
+.ac .avx b,.avx b{align-self:center;max-width:none;overflow:visible;white-space:nowrap}
+.chips .chip{min-height:0!important;padding:.2rem .65rem;font-size:.75rem;line-height:1.4}
+.chips{gap:.35rem}
