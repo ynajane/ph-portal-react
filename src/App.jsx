@@ -202,40 +202,7 @@ function Holidays({ local }) {
     <div className="hg">{ld ? 'Loading…' : shown.map((h) => <div className="h" key={h.date + h.name}><b>{h.name}</b><br /><small>{longDate(h.date)}</small><br /><span className={'bd ' + TYPE_CLS[h.type]}>{h.type}</span>{(h.scope === 'local' || h.provisional) && <small className="hn"><br />{h.scope === 'local' ? 'Regional Muslim holiday (PD 1083)' : ''}{h.provisional ? (h.scope === 'local' ? ' · ' : '') + 'Tentative date' : ''}</small>}</div>)}</div></div>);
 }
 const group = (t, rows) => (<><h4 className="gh">{t}</h4><div className="sg">{rows}</div></>);
-function Profile({ u }) {
-  const nm = [u.first_name, u.middle_initial, u.last_name].filter(Boolean).join(' ');
-  return (<><div className="ph"><Av first={u.first_name} last={u.last_name} size="lg" ok /><div><h3>{nm}</h3><small><Em v={u.email} /></small><div className="pills"><span className="bd b2">Account active</span></div></div></div>
-    {group('Personal details', [row('First name', u.first_name), row('Middle initial', u.middle_initial || '—'), row('Last name', u.last_name), row('Birthday', u.birthday ? when(u.birthday + 'T00:00:00+08:00') : '')])}
-    {group('Contact', [row('Email', <Em v={u.email} />, u.email_verified ? 'Verified' : 'Not verified'), row('Mobile', u.mobile_number, u.mobile_verified ? 'Verified' : 'Not verified')])}
-    {group('Address', [row('House & street', u.house_street || ''), row('City', u.city || ''), row('State', u.state || ''), row('ZIP', u.zip_code || ''), row('Country', u.country || '')])}
-    {group('Account', [row('Member since', when(u.joined)), row('Status', ok('Active'))])}</>);
-}
-const Settings = ({ u }) => (<>
-  {group('Sign-in and security', [row('Password', ok('Protected'), 'We never store your actual password.'), row('Failed log-ins', '3 attempts', 'Your account locks after 3 wrong passwords. We email you an unlock link that works after 2 minutes.')])}
-  {group('Verification', [row('Email address', u.email_verified ? ok('Verified') : <span className="bd b1">Pending</span>, 'Confirmed through the link we emailed you.'), row('Mobile number', u.mobile_verified ? ok('Verified') : <span className="bd b1">Pending</span>, 'Confirmed with a 6-digit code that lasts 5 minutes.')])}
-  <p className="hintp">To sign out, use <b>Log out</b> in your account menu at the top right.</p></>);
-
-function Summary({ u, open }) {
-  const [S, setS] = useState(null);
-  useEffect(() => {
-    let on = true;
-    (async () => {
-      const y = new Date().getFullYear(), [us, h1, h2] = await Promise.all([api('users'), api('holidays/' + y), y < 2027 ? api('holidays/' + (y + 1)) : null]);
-      if (on) setS({ n: us.ok ? us.d.length + 1 : null, hol: [...(h1.ok ? h1.d : []), ...(h2?.ok ? h2.d : [])] });
-    })();
-    return () => { on = false; };
-  }, []);
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });   // YYYY-MM-DD in Philippine time
-  const next = S?.hol.find((h) => h.date >= today), days = next ? Math.round((Date.parse(next.date) - Date.parse(today)) / 864e5) : 0;
-  const month = S ? S.hol.filter((h) => h.date.startsWith(today.slice(0, 7))).length : null;
-  const card = (ic, k, v, sub, on) => (<button type="button" className="dc" onClick={on} disabled={!on}><span className="di"><Ico n={ic} /></span><small>{k}</small><b>{v}</b><span>{sub}</span></button>);
-  return (<section id="dash" className="dsh" aria-label="Dashboard summary"><h2>Dashboard</h2><div className="dg">
-    {card('users', 'Registered accounts', S ? (S.n ?? '—') : '…', 'Click to view accounts', () => open('a'))}
-    {card('flag', 'Next holiday', S ? (next ? next.name : '—') : '…', next ? `${longDate(next.date)} · ${days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : 'In ' + days + ' days'}` : 'No upcoming holiday', () => open('h'))}
-    {card('cal', 'Holidays this month', S ? month : '…', new Date().toLocaleString('en-PH', { month: 'long', year: 'numeric', timeZone: 'Asia/Manila' }), () => open('h'))}
-    {card('check', 'Your account', 'Active', 'Member since ' + (when(u.joined) || '—'), () => open('p'))}
-  </div></section>);
-}
+// Profile and Settings intentionally show only the modal header (title + Close).
 
 function Dash({ u }) {
   const [menu, setMenu] = useState(false), [dd, setDd] = useState(false), [m, setM] = useState(null);
@@ -246,16 +213,15 @@ function Dash({ u }) {
   const togDd = () => { setMenu(false); setDd(!dd); };
   return (<>
     <nav><b className="lg"><Logo s={30} />Hiraya</b>
-      <div id="links" className={menu ? 'open' : ''}><A on={pick(() => document.getElementById('dash')?.scrollIntoView({ behavior: 'smooth' }))}>Dashboard</A><A on={pick(() => setM('p'))}>Profile</A><A on={pick(() => setM('s'))}>Settings</A><A on={pick(() => setM('h'))}>Philippine Holidays</A></div>
+      <div id="links" className={menu ? 'open' : ''}><A on={pick(() => setM('p'))}>Profile</A><A on={pick(() => setM('s'))}>Settings</A><A on={pick(() => setM('h'))}>Philippine Holidays</A></div>
       <div className="dd"><a className="pfb" role="button" tabIndex={0} aria-label="Account menu" aria-expanded={dd} onClick={togDd} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), togDd())}><Av first={u.first_name} last={u.last_name} size="sm" ok /><span className="pt"><b>{full}</b><small>{u.email}</small></span><span className="cr"><Ico n="chev" /></span></a>
         {dd && <div id="acct" role="menu"><div className="ah"><Av first={u.first_name} last={u.last_name} size="lg" ok /><b className="dn">{full}</b><p><Em v={u.email} /></p><span className="vb"><Ico n="check" />Verified account</span></div>
           <button id="out" role="menuitem" onClick={out}><Ico n="out" />Log out</button><small className="bv">build v3</small></div>}</div>
       <button id="burger" aria-label="Menu" aria-expanded={menu} onClick={() => { setDd(false); setMenu(!menu); }}>{menu ? '✕' : '☰'}</button></nav>
     <section className="hero"><h1>Mabuhay, <span>{u.first_name}</span></h1><p>Your account is secure. Browse accounts and check the official Philippine holiday calendar.</p><div className="ctas"><button className="alt" onClick={() => { setMenu(false); setDd(false); setM('a'); }}>View More</button></div></section>
- <Summary u={u} open={(k) => { setMenu(false); setDd(false); setM(k); }} />
     {m && <div className="ov" onClick={(e) => e.target === e.currentTarget && setM(null)}><div className={'modal' + (small ? ' sm' : '')} role="dialog" aria-modal="true">
       <div className="mh">{!small && <div className="tabs"><button className={m === 'a' ? '' : 'ghost'} onClick={() => setM('a')}>Accounts</button><button className={m === 'h' ? '' : 'ghost'} onClick={() => setM('h')}>Calendars / Holidays</button></div>}<b id="mt">{m === 'p' ? 'Profile' : m === 's' ? 'Settings' : ''}</b><button className="ghost" id="cl" onClick={() => setM(null)}>Close</button></div>
-      <div className="mb">{m === 'a' && <Accounts />}{m === 'h' && <Holidays local={u.holiday_scope !== 'national'} />}{m === 'p' && <Profile u={u} />}{m === 's' && <Settings u={u} />}</div></div></div>}
+      <div className="mb">{m === 'a' && <Accounts />}{m === 'h' && <Holidays local={u.holiday_scope !== 'national'} />}</div></div></div>}
   </>);
 }
 
