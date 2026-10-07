@@ -163,6 +163,8 @@ const Ico = ({ n }) => <svg className="ico" viewBox="0 0 24 24" fill="none" stro
 const when = (d) => { const t = new Date(d); return Number.isNaN(+t) ? '' : t.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' }); };
 const ok = (t) => <span className="bd b2">{t}</span>;
 const row = (k, v, sub) => (<div className="sr" key={k}><div><b>{k}</b>{sub && <small>{sub}</small>}</div><div className="v">{v}</div></div>);
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const longDate = (d) => `${MONTHS[+d.slice(5, 7) - 1]} ${+d.slice(8, 10)}, ${d.slice(0, 4)}`;   // 2026-12-31 -> December 31, 2026
 const TYPE_CLS = { 'Regular Holiday': 'b0', 'Special Non-Working Day': 'b1', 'Islamic Holiday': 'b2' };
 
 const TALLY = [{ type: 'Regular Holiday', label: 'Regular Holidays', cls: 'b0' }, { type: 'Special Non-Working Day', label: 'Special Non-Working Days', cls: 'b1' }, { type: 'Islamic Holiday', label: 'Islamic Holidays', cls: 'b2' }];
@@ -188,7 +190,6 @@ function Holidays({ local }) {
   return (<div className="hol">
     <div className="hbar"><div className="mnav"><button type="button" aria-label="Previous month" disabled={yr === 2020 && cm === 0} onClick={() => go(-1)}>‹</button><h3 aria-live="polite">{f.toLocaleString('en-PH', { month: 'long', year: 'numeric' })}</h3><button type="button" aria-label="Next month" disabled={yr === 2027 && cm === 11} onClick={() => go(1)}>›</button></div>
       <label className="yrsel">Year<select value={yr} onChange={(e) => setYr(+e.target.value)}>{[2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027].map((y) => <option key={y}>{y}</option>)}</select></label></div>
-    <div className="chips" role="group" aria-label={'Holiday count for ' + yr}>{tally.map((t) => <button type="button" className={'chip ' + t.cls + (flt === t.type ? ' on' : '')} key={t.type} aria-pressed={flt === t.type} title="Click to filter the list" onClick={() => setFlt(flt === t.type ? '' : t.type)}><i />{t.label}<b>{t.year}</b></button>)}</div>
     <p className="err">{err}</p>
     <div className="hwrap">
       <div className="hcal"><div className="cg">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => <b key={d}>{d}</b>)}{Array.from({ length: f.getDay() }, (_, i) => <i key={'e' + i} />)}
@@ -196,13 +197,14 @@ function Holidays({ local }) {
       <aside className="haside">
         <div id="cn"><h4>{mname}</h4>{Object.keys(hm).length ? Object.entries(hm).flatMap(([d, a]) => a.map((h) => <div className={'mi t' + (tIdx[h.type] ?? 0)} key={d + h.name}><b>{d}</b><span>{h.name}<small>{h.type}{h.scope === 'local' ? ' · Local' : local ? ' · National' : ''}{h.provisional ? ' · provisional' : ''}</small></span></div>)) : <p className="none">No holiday this month.</p>}</div>
       </aside></div>
-    <h3 className="gt">{flt ? TALLY.find((t) => t.type === flt).label : sc === 'local' ? 'Local & regional holidays' : sc === 'national' ? 'National holidays' : 'All holidays'} in {yr} <small>({shown.length})</small></h3>
-    <div className="hg">{ld ? 'Loading…' : shown.map((h) => <div className="h" key={h.date + h.name}><b>{h.name}</b><br /><small>{new Date(h.date + 'T00:00:00+08:00').toLocaleDateString('en-PH', { weekday: 'short', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}</small><br /><span className={'bd ' + TYPE_CLS[h.type]}>{h.type}</span>{(h.scope === 'local' || h.provisional) && <small className="hn"><br />{h.scope === 'local' ? 'Regional Muslim holiday (PD 1083)' : ''}{h.provisional ? (h.scope === 'local' ? ' · ' : '') + 'Tentative date' : ''}</small>}</div>)}</div></div>);
+    <h3 className="gt">Philippine Holidays in {yr} <small>({shown.length})</small></h3>
+    <div className="chips" role="group" aria-label={'Holiday count for ' + yr}>{tally.map((t) => <button type="button" className={'chip ' + t.cls + (flt === t.type ? ' on' : '')} key={t.type} aria-pressed={flt === t.type} title="Click to filter the list" onClick={() => setFlt(flt === t.type ? '' : t.type)}><i />{t.label}<b>{t.year}</b></button>)}</div>
+    <div className="hg">{ld ? 'Loading…' : shown.map((h) => <div className="h" key={h.date + h.name}><b>{h.name}</b><br /><small>{longDate(h.date)}</small><br /><span className={'bd ' + TYPE_CLS[h.type]}>{h.type}</span>{(h.scope === 'local' || h.provisional) && <small className="hn"><br />{h.scope === 'local' ? 'Regional Muslim holiday (PD 1083)' : ''}{h.provisional ? (h.scope === 'local' ? ' · ' : '') + 'Tentative date' : ''}</small>}</div>)}</div></div>);
 }
 const group = (t, rows) => (<><h4 className="gh">{t}</h4><div className="sg">{rows}</div></>);
 function Profile({ u }) {
   const nm = [u.first_name, u.middle_initial, u.last_name].filter(Boolean).join(' ');
-  return (<><div className="ph"><Av first={u.first_name} last={u.last_name} size="lg" ok /><div><h3>{nm}</h3><small><Em v={u.email} /></small><div className="pills"><span className="bd b2">Account active</span>{u.holiday_scope && <span className="bd b1">{u.holiday_scope === 'national' ? 'National holidays' : 'National + Local holidays'}</span>}</div></div></div>
+  return (<><div className="ph"><Av first={u.first_name} last={u.last_name} size="lg" ok /><div><h3>{nm}</h3><small><Em v={u.email} /></small><div className="pills"><span className="bd b2">Account active</span></div></div></div>
     {group('Personal details', [row('First name', u.first_name), row('Middle initial', u.middle_initial || '—'), row('Last name', u.last_name), row('Birthday', u.birthday ? when(u.birthday + 'T00:00:00+08:00') : '')])}
     {group('Contact', [row('Email', <Em v={u.email} />, u.email_verified ? 'Verified' : 'Not verified'), row('Mobile', u.mobile_number, u.mobile_verified ? 'Verified' : 'Not verified')])}
     {group('Address', [row('House & street', u.house_street || ''), row('City', u.city || ''), row('State', u.state || ''), row('ZIP', u.zip_code || ''), row('Country', u.country || '')])}
@@ -211,7 +213,6 @@ function Profile({ u }) {
 const Settings = ({ u }) => (<>
   {group('Sign-in and security', [row('Password', ok('Protected'), 'We never store your actual password.'), row('Session', '8 hours', 'After that, you will need to log in again.'), row('Failed log-ins', '3 attempts', 'Your account locks after 3 wrong passwords. We email you an unlock link that works after 2 minutes.')])}
   {group('Verification', [row('Email address', u.email_verified ? ok('Verified') : <span className="bd b1">Pending</span>, 'Confirmed through the link we emailed you.'), row('Mobile number', u.mobile_verified ? ok('Verified') : <span className="bd b1">Pending</span>, 'Confirmed with a 6-digit code that lasts 5 minutes.')])}
-  {group('Holiday calendar', [row('Holidays shown', u.holiday_scope === 'national' ? 'National only' : 'National + Local & Regional', u.holiday_scope === 'national' ? 'Official nationwide holidays. Local and regional holidays are hidden.' : 'Includes local and regional Muslim holidays (PD 1083).')])}
   <p className="hintp">To sign out, use <b>Log out</b> in your account menu at the top right.</p></>);
 
 function Dash({ u }) {
