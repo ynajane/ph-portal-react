@@ -45,6 +45,7 @@ app.use(cookieParser());
 async function sendUnlock(u) {
   const raw = rnd();
   await q(`delete from verification_tokens where user_id=$1 and type='account_unlock'`, [u.id]);
+  await q('update users set lockout_until=null where id=$1', [u.id]);   // new link = timer not started until it is clicked
   await q(`insert into verification_tokens(user_id,token_hash,type,expired_at) values($1,$2,'account_unlock',now()+interval '24 hours')`, [u.id, sha(raw)]);
   await sendMail(u.email, `Security alert: your ${APP} account was locked`,
     `Dear ${u.first_name},\n\nThere were 3 failed sign-in attempts on your account, so we locked it.\nFor your protection the unlock link works only after a 2-minute cooling period:\n\n${SITE}/unlock?token=${raw}\n\nIf this wasn't you, change your password after unlocking.\n\nThe ${APP} Security Team`);
