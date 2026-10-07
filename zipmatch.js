@@ -7,7 +7,10 @@ const BY_ZIP = new Map();
 for (const r of DATA) (BY_ZIP.get(r.z) ?? BY_ZIP.set(r.z, []).get(r.z)).push(r);
 
 // Normalise a place name so "City of Angeles", "Angeles City" and "ANGELES" all compare equal.
-export const nm = (x = '') => String(x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+// Official PSGC names that the postal data spells differently.
+const ALIAS = { 'science munoz': 'munoz', 'island garden samal': 'samal', 'island garden city of samal': 'samal', 'isabela de basilan': 'isabela', ozamis: 'ozamiz', baliwag: 'baliuag' };
+export const nm = (x = '') => { const v = nm0(x); return ALIAS[v] ?? v; };
+const nm0 = (x = '') => String(x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
   .replace(/\([^)]*\)/g, ' ')
   .replace(/\bsta\b/g, 'santa').replace(/\bsto\b/g, 'santo').replace(/\bgen\b/g, 'general')
   .replace(/\b(city of|municipality of|province of|city|cpo|poblacion)\b/g, ' ')
@@ -73,4 +76,22 @@ export function checkPhZip({ state, city, zip }) {
   const mine = DATA.filter((r) => sameProv(r.p, state) && samePlace(r.a, city));
   if (!mine.length) return { ok: true };                             // this city has no postal area of its own in the data: province-level check only
   return { ok: false, error: `ZIP ${z} belongs to ${recs[0].a.replace(/\s*\([^)]*\)/g, '')}, not ${city}. ZIP code for ${city}: ${listZips(mine.map((r) => r.z))}.` };
+}
+
+// ZIP codes that belong to a city/municipality, for the registration dropdown.
+// Uses exactly the same matching rules as checkPhZip, so every ZIP offered here is accepted by the validator.
+// -> { zips: [{ zip, area }], exact }   exact=false means the data has no postal area named after this city,
+//    so the province's ZIPs are offered instead (checkPhZip only does a province-level check in that case).
+export function zipsFor({ state, city }) {
+  const clean = (a) => a.replace(/\s*\([^)]*\)/g, '').trim();
+  const rows = (rs) => rs.map((r) => ({ zip: r.z, area: clean(r.a) })).sort((a, b) => a.zip.localeCompare(b.zip) || a.area.localeCompare(b.area));
+  if (sameProv(state, NCR_PROV)) {
+    const own = ncrRangeOf(city);
+    if (own) return { zips: rows(DATA.filter((r) => +r.z >= +own.lo && +r.z <= +own.hi)), exact: true };
+    const mine = DATA.filter((r) => sameProv(r.p, NCR_PROV) && samePlace(r.a, city));
+    return mine.length ? { zips: rows(mine), exact: true } : { zips: rows(DATA.filter((r) => sameProv(r.p, NCR_PROV))), exact: false };
+  }
+  const mine = DATA.filter((r) => sameProv(r.p, state) && samePlace(r.a, city));
+  if (mine.length) return { zips: rows(mine), exact: true };
+  return { zips: rows(DATA.filter((r) => sameProv(r.p, state))), exact: false };
 }

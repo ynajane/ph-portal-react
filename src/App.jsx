@@ -53,7 +53,7 @@ const pwOk = (v) => v.length >= 12 && /[A-Z]/.test(v) && /[a-z]/.test(v) && /\d/
 function Register({ done, go, limited }) {
   const [f, setF] = useState({ first_name: '', last_name: '', middle_initial: '', birthday: '', house_street: '', country: '', state: '', city: '', zip_code: '', email: '', mobile: '', password: '', confirm_password: '' });
   const [tx, setTx] = useState({ country: '', state: '', city: '' }), [touched, setT] = useState({}), [ax, setAx] = useState({}), [srv, setSrv] = useState({});
-  const [CUR, setCUR] = useState(null), [cp, setCp] = useState(false), [ST, setST] = useState([]), [sug, setSug] = useState(''), [rerr, setRerr] = useState(''), [busy, setBusy] = useState(false), [copied, setCopied] = useState('Copy'), [zw, setZw] = useState('');
+  const [CUR, setCUR] = useState(null), [cp, setCp] = useState(false), [ST, setST] = useState([]), [sug, setSug] = useState(''), [rerr, setRerr] = useState(''), [busy, setBusy] = useState(false), [copied, setCopied] = useState('Copy'), [zw, setZw] = useState(''), [zl, setZl] = useState({ zips: [], exact: true, busy: false });
   const isPH = CUR?.code === 'PH';   // Philippines: Province, then the city/municipality of that province, both chosen from the official list
   const val = (n, v) => {
     if (!v && n !== 'middle_initial') return 'This field is required.';
@@ -89,6 +89,16 @@ function Register({ done, go, limited }) {
     const t = setTimeout(async () => { const r = await api('geo/validate', { country: CUR.code, state: f.state, city: f.city, zip: z }); if (!on) return; setAx((a) => ({ ...a, zip_code: r.d?.errors?.zip_code || '' })); setZw(r.d?.zipWarning || ''); }, 600);
     return () => { on = false; clearTimeout(t); };
   }, [f.city, f.state, CUR?.code]); // eslint-disable-line
+  useEffect(() => {   // Philippines: the ZIP dropdown lists only the ZIP codes of the chosen city/municipality
+    if (!isPH || !cp || !f.state || !f.city) { setZl({ zips: [], exact: true, busy: false }); if (isPH) setF((p) => (p.zip_code ? { ...p, zip_code: '' } : p)); return; }
+    let on = true; setZl((z) => ({ ...z, busy: true }));
+    api('geo/zips?country=PH&state=' + encodeURIComponent(f.state) + '&city=' + encodeURIComponent(f.city)).then((r) => {
+      if (!on) return; const zips = r.d?.zips || []; setZl({ zips, exact: r.d?.exact !== false, busy: false });
+      setF((p) => (zips.some((z) => z.zip === p.zip_code) ? p : { ...p, zip_code: zips.length === 1 ? zips[0].zip : '' }));   // keep a still-valid choice, auto-pick when there is only one
+      setAx((a) => ({ ...a, zip_code: '' })); setZw('');
+    });
+    return () => { on = false; };
+  }, [isPH, cp, f.state, f.city]); // eslint-disable-line
   const maskBd = (v) => { const d = v.replace(/\D/g, '').slice(0, 8); return d.length > 4 ? d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4) : d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d; };
   const mark = (n, v) => { setT((t) => ({ ...t, [n]: true })); setF((p) => ({ ...p, [n]: v })); };
   const pickCountry = async (o) => {
@@ -124,6 +134,10 @@ function Register({ done, go, limited }) {
     else if (n === 'city') body = <Combo label={isPH ? 'City / Municipality' : 'City'} ph={isPH ? 'Choose city or municipality' : 'Type or choose a city'} disabled={isPH && !f.state} text={tx.city} setText={(v) => setTx((t) => ({ ...t, city: v }))} err={err('city')} ok={cls('city') === 'ok'} bad={cls('city') === 'bad'} onTouch={() => touch('city')}
       load={async (q) => CUR ? ((await api('geo/cities?country=' + CUR.code + '&state=' + encodeURIComponent(ST.length ? f.state : '') + '&q=' + encodeURIComponent(q))).d || []).map((c) => ({ v: c, t: c })) : []}
       pick={(o, typed) => { setCp(!!o); setF((p) => ({ ...p, city: o ? o.v : (typed || '').trim() })); touch('city'); }} />;
+    else if (n === 'zip_code' && isPH) body = <div><label>ZIP code<select value={f.zip_code} className={cls('zip_code')} disabled={!cp || !zl.zips.length} onChange={(ev) => upd('zip_code', ev.target.value)} onBlur={() => blurCheck('zip_code')}>
+      <option value="">{!cp || !f.city ? 'Choose a city or municipality first' : zl.busy ? 'Loading ZIP codes…' : zl.zips.length ? 'Choose ZIP code' : 'No ZIP codes found'}</option>
+      {zl.zips.map((z) => <option key={z.zip + z.area} value={z.zip}>{z.zip} – {z.area}</option>)}</select></label><div className="err">{err('zip_code')}</div>
+      {cp && !zl.exact && !zl.busy && <small className="hint warn">We have no postal area named exactly after this place, so these are the ZIP codes of its province. Pick the one on your mail.</small>}</div>;
     else if (n === 'password' || n === 'confirm_password') body = (<div className="wide"><label className="blk" htmlFor={'f_' + n}>{n === 'password' ? 'Password' : 'Confirm password'}</label>
       <Pw id={'f_' + n} value={f[n]} onChange={(ev) => upd(n, ev.target.value)} onBlur={() => touch(n)} auto="new-password" />
       {n === 'password' && <><div className="meter"><i style={{ width: [f.password.length >= 12, /[A-Z]/.test(f.password), /[a-z]/.test(f.password), /\d/.test(f.password), /[^A-Za-z0-9]/.test(f.password)].filter(Boolean).length * 20 + '%' }} /></div>

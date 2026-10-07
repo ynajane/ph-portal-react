@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { Country, State, City } from 'country-state-city';
 import { parsePhoneNumberFromString, getCountryCallingCode } from 'libphonenumber-js/max';
 import { PUBLIC } from './domains.js';
-import { checkPhZip } from './zipmatch.js';
+import { checkPhZip, zipsFor } from './zipmatch.js';
 
 // Postal-code formats for every country that has a postal system. The ~66 that have none fall back to a loose 3-10 char check.
 const ZIP = Object.fromEntries(Object.entries({
@@ -204,6 +204,12 @@ geo.get('/cities', async (q, r) => {
     const names = [...new Set(L.map((c) => c.name))].sort((a, b) => a.localeCompare(b));
     r.json(search(names, q.query.q).slice(0, 100));
   } catch (err) { console.error('cities:', err.message); r.status(503).json({ error: DOWN }); }
+});
+geo.get('/zips', (q, r) => {   // Philippines only: the ZIP codes of one city/municipality (feeds the ZIP dropdown)
+  const { country, state, city } = q.query;
+  if (cc(country) !== 'PH') return r.status(400).json({ error: 'ZIP list is only available for the Philippines.' });
+  if (!state || !city) return r.json({ zips: [], exact: true });
+  r.json(zipsFor({ state: String(state), city: String(city) }));
 });
 geo.post('/validate', async (q, r) => r.json(await checkAddress(q.body ?? {})));   // country/state + ZIP format
 
