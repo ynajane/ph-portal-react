@@ -202,7 +202,18 @@ function Holidays({ local }) {
     <div className="hg">{ld ? 'Loading…' : shown.map((h) => <div className="h" key={h.date + h.name}><b>{h.name}</b><br /><small>{longDate(h.date)}</small><br /><span className={'bd ' + TYPE_CLS[h.type]}>{h.type}</span>{(h.scope === 'local' || h.provisional) && <small className="hn"><br />{h.scope === 'local' ? 'Regional Muslim holiday (PD 1083)' : ''}{h.provisional ? (h.scope === 'local' ? ' · ' : '') + 'Tentative date' : ''}</small>}</div>)}</div></div>);
 }
 const group = (t, rows) => (<><h4 className="gh">{t}</h4><div className="sg">{rows}</div></>);
-// Profile and Settings intentionally show only the modal header (title + Close).
+function Profile({ u }) {
+  const nm = [u.first_name, u.middle_initial, u.last_name].filter(Boolean).join(' ');
+  return (<><div className="ph"><Av first={u.first_name} last={u.last_name} size="lg" ok /><div><h3>{nm}</h3><small><Em v={u.email} /></small><div className="pills"><span className="bd b2">Account active</span></div></div></div>
+    {group('Personal details', [row('First name', u.first_name), row('Middle initial', u.middle_initial || '—'), row('Last name', u.last_name), row('Birthday', u.birthday ? when(u.birthday + 'T00:00:00+08:00') : '')])}
+    {group('Contact', [row('Email', <Em v={u.email} />, u.email_verified ? 'Verified' : 'Not verified'), row('Mobile', u.mobile_number, u.mobile_verified ? 'Verified' : 'Not verified')])}
+    {group('Address', [row('House & street', u.house_street || ''), row('City', u.city || ''), row('State', u.state || ''), row('ZIP', u.zip_code || ''), row('Country', u.country || '')])}
+    {group('Account', [row('Member since', when(u.joined)), row('Status', ok('Active'))])}</>);
+}
+const Settings = ({ u }) => (<>
+  {group('Sign-in and security', [row('Password', ok('Protected'), 'We never store your actual password.'), row('Failed log-ins', '3 attempts', 'Your account locks after 3 wrong passwords. We email you an unlock link that works after 2 minutes.')])}
+  {group('Verification', [row('Email address', u.email_verified ? ok('Verified') : <span className="bd b1">Pending</span>, 'Confirmed through the link we emailed you.'), row('Mobile number', u.mobile_verified ? ok('Verified') : <span className="bd b1">Pending</span>, 'Confirmed with a 6-digit code that lasts 5 minutes.')])}
+  <p className="hintp">To sign out, use <b>Log out</b> in your account menu at the top right.</p></>);
 
 function Dash({ u }) {
   const [menu, setMenu] = useState(false), [dd, setDd] = useState(false), [m, setM] = useState(null);
@@ -221,7 +232,7 @@ function Dash({ u }) {
     <section className="hero"><h1>Mabuhay, <span>{u.first_name}</span></h1><p>Your account is secure. Browse accounts and check the official Philippine holiday calendar.</p><div className="ctas"><button className="alt" onClick={() => { setMenu(false); setDd(false); setM('a'); }}>View More</button></div></section>
     {m && <div className="ov" onClick={(e) => e.target === e.currentTarget && setM(null)}><div className={'modal' + (small ? ' sm' : '')} role="dialog" aria-modal="true">
       <div className="mh">{!small && <div className="tabs"><button className={m === 'a' ? '' : 'ghost'} onClick={() => setM('a')}>Accounts</button><button className={m === 'h' ? '' : 'ghost'} onClick={() => setM('h')}>Calendars / Holidays</button></div>}<b id="mt">{m === 'p' ? 'Profile' : m === 's' ? 'Settings' : ''}</b><button className="ghost" id="cl" onClick={() => setM(null)}>Close</button></div>
-      <div className="mb">{m === 'a' && <Accounts />}{m === 'h' && <Holidays local={u.holiday_scope !== 'national'} />}</div></div></div>}
+      <div className="mb">{m === 'a' && <Accounts />}{m === 'h' && <Holidays local={u.holiday_scope !== 'national'} />}{m === 'p' && <Profile u={u} />}{m === 's' && <Settings u={u} />}</div></div></div>}
   </>);
 }
 
