@@ -34,6 +34,7 @@ provRegion.set('Metro Manila', 'National Capital Region');
 
 const places = [], unplaced = [];
 for (const m of P.getAllMunicipalities()) {
+  if (/^13806/.test(m.psgcCode) && m.psgcCode !== "1380600000") continue;   // districts of the City of Manila (Tondo, Binondo, Ermita ...) are not cities or municipalities
   const isCity = /\bcity\b/i.test(m.name);
   let prov;
   if (m.provinceCode === NCR) { if (!isCity && !/^pateros$/i.test(m.name.trim())) continue; prov = 'Metro Manila'; }   // skip Manila's districts
