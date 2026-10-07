@@ -158,7 +158,7 @@ const initials = (a, b) => (((a || '')[0] || '') + ((b || '')[0] || '')).toUpper
 const PAL = [['#e11d48', '#7f1034'], ['#2563eb', '#142a6b'], ['#0d9488', '#064e46'], ['#d97706', '#78350f'], ['#7c3aed', '#3b1480'], ['#db2777', '#7a0d3a']];
 const tone = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PAL[h % PAL.length]; };
 const Av = ({ first, last, size = 'md', ok }) => { const [a, b] = tone((first || '') + (last || '')); return (<span className={'avx avx-' + size} style={{ '--a': a, '--b': b }} aria-hidden="true"><b>{initials(first, last) || '?'}</b>{ok && <i className="dot" />}</span>); };
-const IC = { user: 'M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', sliders: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6', out: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9', chev: 'M6 9l6 6 6-6', phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z', cal: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', check: 'M5 12l5 5L20 7' };
+const IC = { user: 'M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', sliders: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6', out: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9', chev: 'M6 9l6 6 6-6', phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z', cal: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', check: 'M5 12l5 5L20 7', users: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75', flag: 'M4 22V4M4 4h13l-2 4 2 4H4' };
 const Ico = ({ n }) => <svg className="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={IC[n]} /></svg>;
 const when = (d) => { const t = new Date(d); return Number.isNaN(+t) ? '' : t.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' }); };
 const ok = (t) => <span className="bd b2">{t}</span>;
@@ -215,6 +215,28 @@ const Settings = ({ u }) => (<>
   {group('Verification', [row('Email address', u.email_verified ? ok('Verified') : <span className="bd b1">Pending</span>, 'Confirmed through the link we emailed you.'), row('Mobile number', u.mobile_verified ? ok('Verified') : <span className="bd b1">Pending</span>, 'Confirmed with a 6-digit code that lasts 5 minutes.')])}
   <p className="hintp">To sign out, use <b>Log out</b> in your account menu at the top right.</p></>);
 
+function Summary({ u, open }) {
+  const [S, setS] = useState(null);
+  useEffect(() => {
+    let on = true;
+    (async () => {
+      const y = new Date().getFullYear(), [us, h1, h2] = await Promise.all([api('users'), api('holidays/' + y), y < 2027 ? api('holidays/' + (y + 1)) : null]);
+      if (on) setS({ n: us.ok ? us.d.length + 1 : null, hol: [...(h1.ok ? h1.d : []), ...(h2?.ok ? h2.d : [])] });
+    })();
+    return () => { on = false; };
+  }, []);
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });   // YYYY-MM-DD in Philippine time
+  const next = S?.hol.find((h) => h.date >= today), days = next ? Math.round((Date.parse(next.date) - Date.parse(today)) / 864e5) : 0;
+  const month = S ? S.hol.filter((h) => h.date.startsWith(today.slice(0, 7))).length : null;
+  const card = (ic, k, v, sub, on) => (<button type="button" className="dc" onClick={on} disabled={!on}><span className="di"><Ico n={ic} /></span><small>{k}</small><b>{v}</b><span>{sub}</span></button>);
+  return (<section id="dash" className="dsh" aria-label="Dashboard summary"><h2>Dashboard</h2><div className="dg">
+    {card('users', 'Registered accounts', S ? (S.n ?? '—') : '…', 'Click to view accounts', () => open('a'))}
+    {card('flag', 'Next holiday', S ? (next ? next.name : '—') : '…', next ? `${longDate(next.date)} · ${days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : 'In ' + days + ' days'}` : 'No upcoming holiday', () => open('h'))}
+    {card('cal', 'Holidays this month', S ? month : '…', new Date().toLocaleString('en-PH', { month: 'long', year: 'numeric', timeZone: 'Asia/Manila' }), () => open('h'))}
+    {card('check', 'Your account', 'Active', 'Member since ' + (when(u.joined) || '—'), () => open('p'))}
+  </div></section>);
+}
+
 function Dash({ u }) {
   const [menu, setMenu] = useState(false), [dd, setDd] = useState(false), [m, setM] = useState(null);
   const out = async () => { await api('logout', {}); location.reload(); };
@@ -224,12 +246,13 @@ function Dash({ u }) {
   const togDd = () => { setMenu(false); setDd(!dd); };
   return (<>
     <nav><b className="lg"><Logo s={30} />Activity #2</b>
-      <div id="links" className={menu ? 'open' : ''}><A on={pick(() => scrollTo({ top: 0, behavior: 'smooth' }))}>Dashboard</A><A on={pick(() => setM('p'))}>Profile</A><A on={pick(() => setM('s'))}>Settings</A><A on={pick(() => setM('h'))}>Philippine Holidays</A></div>
+      <div id="links" className={menu ? 'open' : ''}><A on={pick(() => document.getElementById('dash')?.scrollIntoView({ behavior: 'smooth' }))}>Dashboard</A><A on={pick(() => setM('p'))}>Profile</A><A on={pick(() => setM('s'))}>Settings</A><A on={pick(() => setM('h'))}>Philippine Holidays</A></div>
       <div className="dd"><a className="pfb" role="button" tabIndex={0} aria-label="Account menu" aria-expanded={dd} onClick={togDd} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), togDd())}><Av first={u.first_name} last={u.last_name} size="sm" ok /><span className="pt"><b>{full}</b><small>{u.email}</small></span><span className="cr"><Ico n="chev" /></span></a>
         {dd && <div id="acct" role="menu"><div className="ah"><Av first={u.first_name} last={u.last_name} size="lg" ok /><b className="dn">{full}</b><p><Em v={u.email} /></p><span className="vb"><Ico n="check" />Verified account</span></div>
           <button id="out" role="menuitem" onClick={out}><Ico n="out" />Log out</button><small className="bv">build v3</small></div>}</div>
       <button id="burger" aria-label="Menu" aria-expanded={menu} onClick={() => { setDd(false); setMenu(!menu); }}>{menu ? '✕' : '☰'}</button></nav>
     <section className="hero"><h1>Mabuhay, <span>{u.first_name}</span></h1><p>Your account is secure. Browse accounts and check the official Philippine holiday calendar.</p><div className="ctas"><button className="alt" onClick={() => { setMenu(false); setDd(false); setM('a'); }}>View More</button></div></section>
+ <Summary u={u} open={(k) => { setMenu(false); setDd(false); setM(k); }} />
     {m && <div className="ov" onClick={(e) => e.target === e.currentTarget && setM(null)}><div className={'modal' + (small ? ' sm' : '')} role="dialog" aria-modal="true">
       <div className="mh">{!small && <div className="tabs"><button className={m === 'a' ? '' : 'ghost'} onClick={() => setM('a')}>Accounts</button><button className={m === 'h' ? '' : 'ghost'} onClick={() => setM('h')}>Calendars / Holidays</button></div>}<b id="mt">{m === 'p' ? 'Profile' : m === 's' ? 'Settings' : ''}</b><button className="ghost" id="cl" onClick={() => setM(null)}>Close</button></div>
       <div className="mb">{m === 'a' && <Accounts />}{m === 'h' && <Holidays local={u.holiday_scope !== 'national'} />}{m === 'p' && <Profile u={u} />}{m === 's' && <Settings u={u} />}</div></div></div>}
