@@ -29,7 +29,7 @@ export function validate(b) {
   if (p !== String(b.confirm_password ?? '')) e.confirm_password = 'Passwords do not match.';
   if (!/^[\p{L}0-9 .,#'’\/-]{3,255}$/u.test(s('house_street'))) e.house_street = 'Enter a valid house number and street.';
   const ci = countryInfo(s('country')), c = ci && { name: ci.name, prefix: ci.dial }; if (!ci) e.country = 'Select a country.';
-  for (const k of ['city', 'state']) if (!(k === 'state' && ci?.code === 'PH') && !/^[\p{L}\p{M}0-9 .,'’()\/&-]{2,100}$/u.test(s(k))) e[k] = 'Enter a valid name (2-100 characters).';   // Philippines has no state/province
+  for (const k of ['city', 'state']) if (!/^[\p{L}\p{M}0-9 .,'’()\/&-]{2,100}$/u.test(s(k))) e[k] = 'Enter a valid name (2-100 characters).';
   if (ci && !new RegExp(ci.zipFormat, ci.zipFlags).test(s('zip_code'))) e.zip_code = `Invalid ZIP/postal code for ${c.name}.`;
   const em = s('email').toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em) || em.length > 255) e.email = 'Enter a valid email address.';

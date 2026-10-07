@@ -60,23 +60,23 @@ export const countryInfo = (code) => {
 };
 
 // ---- Philippines: bundled offline list (ph-locations.json) ----
-// The Philippine form has NO state/province: the user picks one of the 149 official cities (the same list Google and
-// Wikipedia show; municipalities are not cities). Source: PSGC as of 30 June 2026. Rebuild with `node scripts/build-ph-locations.mjs`.
-// Each city keeps its province only so the ZIP code can be checked; it is never asked for or shown.
-// Four names exist twice (Naga, San Carlos, San Fernando, Talisay) and are listed as e.g. "Naga City (Cebu)".
-// No network call is needed, so the form works even when an external API is blocked or down.
-const PH = JSON.parse(readFileSync(new URL('./ph-locations.json', import.meta.url), 'utf8')).cities;
+// Province -> city/municipality, from the official PSGC (PSA). Rebuild with `npm run build:locations` (see scripts/build-ph-locations.mjs).
+// The National Capital Region has no provinces, so it is listed as "Metro Manila". No network call is needed.
+const PHD = JSON.parse(readFileSync(new URL('./ph-locations.json', import.meta.url), 'utf8'));
+const PH_PROV = PHD.provinces, PH = PHD.places;
 const phn = (x = '') => String(x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
   .replace(/\bsta\b/g, 'santa').replace(/\bsto\b/g, 'santo')           // "Sta. Rosa" == "Santa Rosa"
   .replace(/\b(city of|city)\b/g, '').replace(/[^a-z0-9]+/g, ' ').trim();   // "City of Makati" == "Makati City" == "Makati"
-const phFind = (name) => PH.find((c) => phn(c.name) === phn(name));          // the official city for a typed/picked name, or undefined
-const PH_SHORT = { qc: 'Quezon City', cdo: 'Cagayan de Oro City', gensan: 'General Santos City', zambo: 'Zamboanga City' };   // what people really type
+const phProv = (name) => PH_PROV.find((p) => phn(p.name) === phn(name));
+const phPlaces = (prov) => PH.filter((c) => c.province === prov);
+const phFind = (prov, name) => phPlaces(prov).find((c) => phn(c.name) === phn(name));   // the official place of THAT province, or undefined
+const PH_SHORT = { qc: 'Quezon City', cdo: 'Cagayan de Oro City', gensan: 'General Santos City', zambo: 'Zamboanga City', ncr: 'Metro Manila' };   // what people really type
 const phSearch = (names, q) => {                                              // type-ahead: "angeles", "city of angeles", "sta rosa", "cdo" all work
   const x = phn(q), hit = PH_SHORT[fold(q)]; if (!x) return names;
   const rk = (n) => { if (n === hit) return -1; const a = phn(n); return a.startsWith(x) ? 0 : a.split(' ').some((w) => w.startsWith(x)) ? 1 : a.includes(x) ? 2 : 9; };
   return names.filter((n) => rk(n) < 9).sort((a, b) => rk(a) - rk(b) || a.localeCompare(b));
 };
-const states = async (code) => cc(code) === 'PH' ? [] : State.getStatesOfCountry(cc(code));   // Philippines has no state/province field
+const states = async (code) => cc(code) === 'PH' ? PH_PROV.map((p) => ({ isoCode: p.name, name: p.name, alt: p.name === 'Metro Manila' ? 'NCR National Capital Region' : p.region })) : State.getStatesOfCountry(cc(code));
 const findState = async (code, v) => {
   const all = await states(code), exact = all.find((s) => s.isoCode.toLowerCase() === String(v).toLowerCase() || norm(s.name) === norm(v));
   return exact ?? all.find((s) => same(s.name, v));
@@ -141,10 +141,10 @@ export async function checkAddress({ country, state, city, zip }) {
   if (!(ZIP[c.code] ?? LOOSE).test(z)) errors.zip_code = `Invalid ZIP/postal code for ${c.name}.`;
   let sl, st;
   try { sl = await states(c.code); st = sl.length ? await findState(c.code, state) : null; } catch { return { ...out, errors: { ...errors, state: DOWN } }; }
-  if (sl.length && !st) errors.state = `"${state}" is not a state/province of ${c.name}.`;
+  if (sl.length && !st) errors.state = c.code === 'PH' ? `"${state}" is not a province of the Philippines. Pick one from the list.` : `"${state}" is not a state/province of ${c.name}.`;
   const warnings = [];
-  const phCity = c.code === 'PH' && city ? phFind(city) : null;
-  if (c.code === 'PH' && city && !phCity) errors.city = `"${city}" is not one of the cities of the Philippines. Pick one from the list.`;   // no state: the city must be one of the 149 official cities
+  const phCity = c.code === 'PH' && city && st ? phFind(st.name, city) : null;
+  if (c.code === 'PH' && city && st && !phCity) errors.city = `"${city}" is not a city or municipality of ${st.name}. Pick one from the list.`;   // must belong to the chosen province
   if (city && !errors.state && c.code !== 'PH') {   // other countries: the city must belong to the selected state
     const inState = City.getCitiesOfState(c.code, st?.isoCode ?? '') ?? [];
     if (inState.length ? !inState.some((x) => same(x.name, city)) : false) {
@@ -156,12 +156,12 @@ export async function checkAddress({ country, state, city, zip }) {
   }
   // The ZIP must belong to the chosen city (PH: offline from ph-zip.json; elsewhere: live lookup, see checkZipPlace)
   let zipWarning;
-  if (!errors.zip_code && !errors.state && !errors.city && (st || c.code === 'PH') && city) {
-    if (c.code === 'PH') { const m = checkPhZip({ state: phCity.province, city: phCity.name, zip: z }); if (!m.ok) errors.zip_code = m.error; }   // the city's own province is used behind the scenes
+  if (!errors.zip_code && !errors.state && !errors.city && st && city) {
+    if (c.code === 'PH') { const m = checkPhZip({ state: st.name, city: phCity.name, zip: z }); if (!m.ok) errors.zip_code = m.error; }
     else { const m = await checkZipPlace(c, st, city, z); if (m.error) errors.zip_code = m.error; else if (m.warning) { zipWarning = m.warning; warnings.push(m.warning); } }
   }
   out.warnings = warnings;
-  return { ...out, ok: !Object.keys(errors).length, errors, zipWarning, state: c.code === 'PH' ? '' : st?.name ?? state, stateCode: st?.isoCode };
+  return { ...out, ok: !Object.keys(errors).length, errors, zipWarning, state: st?.name ?? state, stateCode: st?.isoCode };
 }
 
 // ---- routes ----
@@ -176,7 +176,7 @@ geo.get('/states', async (q, r) => {
 geo.get('/cities', async (q, r) => {
   const { country, state } = q.query; if (!countryInfo(country)) return r.status(400).json({ error: 'Valid ?country=XX required.' });
   try {
-    if (cc(country) === 'PH') return r.json(phSearch(PH.map((c) => c.name), q.query.q));   // all 149 cities (no state, no 100-item cut)
+    if (cc(country) === 'PH') { const pv = state ? phProv(state) : null; return r.json(pv ? phSearch(phPlaces(pv.name).map((c) => c.name), q.query.q) : []); }   // only the places of the chosen province (no 100-item cut)
     const s = state ? await findState(country, state) : null;
     let L = (s ? City.getCitiesOfState(cc(country), s.isoCode) : null) ?? [];
     if (!L.length && !s) L = City.getCitiesOfCountry(cc(country)) ?? [];   // no state chosen yet; with a state chosen we never leak other states' cities
