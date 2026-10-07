@@ -1,5 +1,5 @@
 // OFFICIAL Philippine holidays only (what Malacañang proclaims) - no solstices, equinoxes, "Ramadan start", Isra Mi'raj, Maulid, etc.
-// 1) Years in OFFICIAL below use the annual proclamation exactly (2026 = Proc. 1006, 2027 = Proc. 1427).
+// 1) Years in OFFICIAL below use the annual proclamation exactly (2020-2025 listed below, 2026 = Proc. 1006, 2027 = Proc. 1427).
 // 2) Other years use the provider list, but only names that are real PH national holidays are kept.
 // 3) Eid'l Fitr / Eid'l Adha are shown ONLY when the President proclaimed them (dates in islamic-dates.json).
 //    No proclamation yet for a year = no Eid shown for that year. Add the date to islamic-dates.json when it is proclaimed.
@@ -7,6 +7,50 @@ import fs from 'node:fs';
 
 const R = 'Regular Holiday', S = 'Special Non-Working Day', I = 'Islamic Holiday';
 const OFFICIAL = {
+  // 2020-2025: official proclamations (845 s.2019, 1107 s.2021, 1236 s.2021 + 115 s.2022, 90 s.2022, 368 s.2023 + 453 s.2024, 727 s.2024).
+  // "Special working" days are NOT holidays and are left out. 2020 Nov 2 and Dec 24 were removed on request.
+  2020: [
+    ['01-01', "New Year's Day", R], ['01-25', 'Chinese New Year', S], ['02-25', 'EDSA People Power Revolution Anniversary', S],
+    ['04-09', 'Maundy Thursday / Araw ng Kagitingan (Day of Valor)', R], ['04-10', 'Good Friday', R], ['04-11', 'Black Saturday', S],
+    ['05-01', 'Labor Day', R], ['06-12', 'Independence Day', R], ['08-21', 'Ninoy Aquino Day', S], ['08-31', 'National Heroes Day', R],
+    ['11-01', "All Saints' Day", S], ['11-30', 'Bonifacio Day', R], ['12-08', 'Feast of the Immaculate Conception of Mary', S],
+    ['12-25', 'Christmas Day', R], ['12-30', 'Rizal Day', R], ['12-31', 'Last Day of the Year', S],
+  ],
+  2021: [
+    ['01-01', "New Year's Day", R], ['02-12', 'Chinese New Year', S], ['02-25', 'EDSA People Power Revolution Anniversary', S],
+    ['04-01', 'Maundy Thursday', R], ['04-02', 'Good Friday', R], ['04-03', 'Black Saturday', S], ['04-09', 'Araw ng Kagitingan (Day of Valor)', R],
+    ['05-01', 'Labor Day', R], ['06-12', 'Independence Day', R], ['08-21', 'Ninoy Aquino Day', S], ['08-30', 'National Heroes Day', R],
+    ['11-01', "All Saints' Day", S], ['11-30', 'Bonifacio Day', R], ['12-08', 'Feast of the Immaculate Conception of Mary', S],
+    ['12-25', 'Christmas Day', R], ['12-30', 'Rizal Day', R],
+  ],
+  2022: [
+    ['01-01', "New Year's Day", R], ['02-01', 'Chinese New Year', S], ['02-25', 'EDSA People Power Revolution Anniversary', S],
+    ['04-09', 'Araw ng Kagitingan (Day of Valor)', R], ['04-14', 'Maundy Thursday', R], ['04-15', 'Good Friday', R], ['04-16', 'Black Saturday', S],
+    ['05-01', 'Labor Day', R], ['06-12', 'Independence Day', R], ['08-21', 'Ninoy Aquino Day', S], ['08-29', 'National Heroes Day', R],
+    ['11-01', "All Saints' Day", S], ['11-30', 'Bonifacio Day', R], ['12-08', 'Feast of the Immaculate Conception of Mary', S],
+    ['12-25', 'Christmas Day', R], ['12-26', 'Additional Special Non-Working Day', S], ['12-30', 'Rizal Day', R],
+  ],
+  2023: [
+    ['01-01', "New Year's Day", R], ['01-02', 'Additional Special Non-Working Day (New Year)', S], ['02-25', 'EDSA People Power Revolution Anniversary', S],
+    ['04-06', 'Maundy Thursday', R], ['04-07', 'Good Friday', R], ['04-08', 'Black Saturday', S], ['04-10', 'Araw ng Kagitingan (Day of Valor)', R],
+    ['05-01', 'Labor Day', R], ['06-12', 'Independence Day', R], ['08-21', 'Ninoy Aquino Day', S], ['08-28', 'National Heroes Day', R],
+    ['11-01', "All Saints' Day", S], ['11-02', "All Souls' Day", S], ['11-27', 'Bonifacio Day', R], ['12-08', 'Feast of the Immaculate Conception of Mary', S],
+    ['12-25', 'Christmas Day', R], ['12-30', 'Rizal Day', R], ['12-31', 'Last Day of the Year', S],
+  ],
+  2024: [
+    ['01-01', "New Year's Day", R], ['02-09', 'Chinese New Year', S], ['03-28', 'Maundy Thursday', R], ['03-29', 'Good Friday', R],
+    ['03-30', 'Black Saturday', S], ['04-09', 'Araw ng Kagitingan (Day of Valor)', R], ['05-01', 'Labor Day', R], ['06-12', 'Independence Day', R],
+    ['08-21', 'Ninoy Aquino Day', S], ['08-26', 'National Heroes Day', R], ['11-01', "All Saints' Day", S], ['11-02', "All Souls' Day", S],
+    ['11-30', 'Bonifacio Day', R], ['12-08', 'Feast of the Immaculate Conception of Mary', S], ['12-24', 'Christmas Eve', S],
+    ['12-25', 'Christmas Day', R], ['12-30', 'Rizal Day', R], ['12-31', 'Last Day of the Year', S],
+  ],
+  2025: [
+    ['01-01', "New Year's Day", R], ['01-29', 'Chinese New Year', S], ['04-09', 'Araw ng Kagitingan (Day of Valor)', R],
+    ['04-17', 'Maundy Thursday', R], ['04-18', 'Good Friday', R], ['04-19', 'Black Saturday', S], ['05-01', 'Labor Day', R],
+    ['06-12', 'Independence Day', R], ['08-21', 'Ninoy Aquino Day', S], ['08-25', 'National Heroes Day', R], ['10-31', "All Saints' Day Eve", S],
+    ['11-01', "All Saints' Day", S], ['11-30', 'Bonifacio Day', R], ['12-08', 'Feast of the Immaculate Conception of Mary', S],
+    ['12-24', 'Christmas Eve', S], ['12-25', 'Christmas Day', R], ['12-30', 'Rizal Day', R], ['12-31', 'Last Day of the Year', S],
+  ],
   2026: [
     ['01-01', "New Year's Day", R], ['02-17', 'Chinese New Year', S], ['04-02', 'Maundy Thursday', R], ['04-03', 'Good Friday', R],
     ['04-04', 'Black Saturday', S], ['04-09', 'Araw ng Kagitingan (Day of Valor)', R], ['05-01', 'Labor Day', R], ['06-12', 'Independence Day', R],
@@ -59,5 +103,8 @@ export function withIslamic(year, list) {
   const extra = (EXTRA[year] ?? []).map(([md, name, type]) => ({ date: `${year}-${md}`, name, local: '', type }));
   const base2 = [...base.filter((h) => !extra.some((x) => x.date === h.date)), ...extra];
   const eid = Object.entries(EID).flatMap(([k, v]) => (proclaimed?.[year]?.[k] ? [{ date: proclaimed[year][k], name: v.name, local: v.local, type: I, scope: 'national' }] : []));
-  return [...base2, ...eid, ...(INCLUDE_LOCAL ? localIslamic(year) : [])].sort((a, b) => a.date.localeCompare(b.date));
+  const seen = new Set();   // no duplicates (same date + name) and no unnamed entries
+  return [...base2, ...eid, ...(INCLUDE_LOCAL ? localIslamic(year) : [])]
+    .filter((h) => h.name && String(h.name).trim() && !seen.has(h.date + h.name) && seen.add(h.date + h.name))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
